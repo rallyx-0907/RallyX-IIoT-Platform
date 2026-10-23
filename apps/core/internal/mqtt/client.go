@@ -9,6 +9,7 @@ import (
 	"time"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
+	"rallyx.local/core/internal/contracts"
 	"rallyx.local/core/internal/telemetry"
 )
 
@@ -29,7 +30,7 @@ func Connect(parent context.Context, address, clientID string, engine *telemetry
 		SetKeepAlive(15 * time.Second).SetOrderMatters(true).SetAutoAckDisabled(true)
 	options.SetConnectionLostHandler(func(_ paho.Client, err error) { result.subscribed.Store(false); slog.Warn("MQTT connection lost") })
 	options.SetOnConnectHandler(func(client paho.Client) {
-		token := client.Subscribe("rallyx/+/+/telemetry", 1, func(_ paho.Client, message paho.Message) {
+		token := client.Subscribe(contracts.TelemetrySubscription, 1, func(_ paho.Client, message paho.Message) {
 			dispatch(message.Topic(), func() {
 				parsed, parseErr := telemetry.Parse(message.Topic(), message.Payload())
 				for {

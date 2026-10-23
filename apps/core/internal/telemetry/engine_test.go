@@ -14,12 +14,13 @@ func TestDurableTransitionsAndRules(t *testing.T) {
 	pool := testutil.Database(t)
 	ctx := context.Background()
 	id := fmt.Sprintf("engine-%d", time.Now().UnixNano())
-	_, err := pool.Exec(ctx, "INSERT INTO assets(id,panel_id,name) VALUES($1,'demo-panel',$1)", id)
+	_, err := pool.Exec(ctx, "INSERT INTO assets(id,area_id,name) VALUES($1,'demo-area',$1)", id)
 	if err != nil {
 		t.Fatal(err)
 	}
+	deviceID := testutil.Device(t, pool, id)
 	for _, tag := range []struct{ key, datatype, semantic string }{{"run", "boolean", "run"}, {"fault", "boolean", "fault"}, {"current", "number", ""}} {
-		_, err = pool.Exec(ctx, "INSERT INTO tags(id,asset_id,key,name,datatype,semantic) VALUES($1,$2,$3,$3,$4,$5)", id+"-"+tag.key, id, tag.key, tag.datatype, tag.semantic)
+		_, err = pool.Exec(ctx, "INSERT INTO tags(id,asset_id,device_id,key,name,datatype,data_type,semantic) VALUES($1,$2,$6,$3,$3,$4,CASE WHEN $4='boolean' THEN 'bool' ELSE 'float64' END,$5)", id+"-"+tag.key, id, tag.key, tag.datatype, tag.semantic, deviceID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -35,7 +36,7 @@ func TestDurableTransitionsAndRules(t *testing.T) {
 		if err := json.Unmarshal([]byte(tags), &values); err != nil {
 			t.Fatal(err)
 		}
-		return engine.Process(ctx, Message{SiteID: "demo-site", AssetID: id, Timestamp: ts, Quality: quality, Tags: values})
+		return engine.Process(ctx, Message{DeviceID: deviceID, AssetID: id, Timestamp: ts, Quality: quality, Tags: values})
 	}
 	if err := process(at, "good", `{"run":true,"fault":true,"current":12}`); err != nil {
 		t.Fatal(err)
@@ -92,7 +93,7 @@ func TestDurableTransitionsAndRules(t *testing.T) {
 	}
 	var quality string
 	pool.QueryRow(ctx, "SELECT quality FROM tag_current_state WHERE tag_id=$1", id+"-run").Scan(&quality)
-	if quality != "stale" {
+	if quality != "STALE" {
 		t.Fatalf("quality=%s", quality)
 	}
 	pool.QueryRow(ctx, "SELECT count(*) FROM alarms WHERE rule_id=$1 AND cleared_at IS NULL", id+"-stale").Scan(&active)

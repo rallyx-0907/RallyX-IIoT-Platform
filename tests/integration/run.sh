@@ -13,4 +13,4 @@ docker run --rm --network rallyx_default \
   -v rallyx-go-cache:/root/.cache/go-build -v rallyx-go-mod:/go/pkg/mod \
   -e "TEST_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/rallyx_test?sslmode=disable" \
   -e TEST_MQTT_URL=tcp://broker:1883 \
-  golang:1.24.6-alpine go test -count=1 -v ./...
+  golang:1.24.6-alpine go test -count=1 -v "${@:-./...}"

@@ -37,3 +37,12 @@ func Database(t *testing.T) *pgxpool.Pool {
 	}
 	return pool
 }
+
+func Device(t *testing.T, pool *pgxpool.Pool, assetID string) string {
+	t.Helper()
+	id := assetID + "-device"
+	if _, err := pool.Exec(context.Background(), "INSERT INTO devices(id,connection_id,asset_id,name) VALUES($1,'demo-simulator',$2,$1)", id, assetID); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}

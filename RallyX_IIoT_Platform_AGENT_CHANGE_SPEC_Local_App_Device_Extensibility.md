@@ -587,13 +587,15 @@ Agent phải mở `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md` và sửa 
 
 ## L4. Connectivity milestone
 
-- [ ] Simulator connector.
-- [ ] MQTT connector.
-- [ ] Modbus TCP connector.
+- [x] Simulator connector.
+- [x] MQTT connector.
+- [x] Modbus TCP connector.
 - [ ] Modbus RTU connector.
-- [ ] Dynamic config reload.
-- [ ] Test Connection.
-- [ ] Test Read.
+- [x] Dynamic config reload.
+- [x] Test Connection.
+- [x] Test Read.
+
+Backend/API and Linux-container verification recorded in `docs/implementation-ledger.md`; RTU adapter code is implemented, but physical serial acceptance and UI workflow acceptance remain open.
 
 ## L5. Web milestone
 

@@ -9,7 +9,7 @@ export function simulatorAdapter(connection, device) {
       const values = Object.create(null);
       const readings = [];
       for (const tag of tags) {
-        const raw = Object.hasOwn(configured, tag.key) ? configured[tag.key] : undefined;
+        const raw = Object.hasOwn(configured, tag.key) ? configured[tag.key] : tag.metadata?.simulator_value;
         const decoded = decodeScalar(raw, tag.data_type);
         values[tag.key] = decoded;
         readings.push({ tag_id: tag.id, raw, decoded });

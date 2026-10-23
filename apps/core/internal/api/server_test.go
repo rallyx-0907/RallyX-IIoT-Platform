@@ -63,11 +63,11 @@ func TestRegistryAuthenticationAndAudit(t *testing.T) {
 		t.Fatalf("invalid datatype status=%d", bad.Code)
 	}
 	id := fmt.Sprintf("test-tag-%d", time.Now().UnixNano())
-	created := request("POST", "/api/v1/tags", fmt.Sprintf(`{"id":%q,"asset_id":"demo-motor","key":%q,"name":"Test tag","datatype":"number","unit":"A"}`, id, id), cookie)
+	created := request("POST", "/api/v1/tags", fmt.Sprintf(`{"id":%q,"asset_id":"demo-motor","device_id":"demo-motor-device","key":%q,"name":"Test tag","datatype":"number","unit":"A"}`, id, id), cookie)
 	if created.Code != 201 {
 		t.Fatalf("create tag: %d %s", created.Code, created.Body.String())
 	}
-	duplicate := request("POST", "/api/v1/tags", fmt.Sprintf(`{"id":%q,"asset_id":"demo-motor","key":%q,"name":"Test tag","datatype":"number"}`, id, id), cookie)
+	duplicate := request("POST", "/api/v1/tags", fmt.Sprintf(`{"id":%q,"asset_id":"demo-motor","device_id":"demo-motor-device","key":%q,"name":"Test tag","datatype":"number"}`, id, id), cookie)
 	if duplicate.Code != 409 {
 		t.Fatalf("duplicate status=%d", duplicate.Code)
 	}

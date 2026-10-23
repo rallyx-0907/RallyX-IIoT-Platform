@@ -26,7 +26,7 @@ Open `http://localhost:8080`. Keep the default loopback binding until remote acc
 
 ## Development commands
 
-Install Node 22+ and Go 1.24+, then `npm --prefix apps/web ci` and `go mod download` in `apps/core`.
+Install Node 22+ and Go 1.24+, then `npm --prefix apps/web ci`, `npm --prefix apps/connectivity ci --ignore-scripts`, and `go mod download` in `apps/core`.
 
 | Command | Purpose |
 |---|---|
@@ -45,6 +45,7 @@ Operational scripts and acceptance commands are implemented incrementally; an un
 
 - `apps/core`: Go domain services, API, ingestion, migrations, security.
 - `apps/web`: React/TypeScript product UI.
+- `apps/connectivity`: dynamic Simulator/MQTT/Modbus read adapters and diagnostics; see [connectivity setup and verification](docs/connectivity.md).
 - `connectors/node-red`: simulator and protocol mapping flows; no business rules.
 - `config`, `deploy`, `scripts`: service configuration and Linux operations.
 - `tests/integration`, `tests/e2e`: database and full-stack acceptance.

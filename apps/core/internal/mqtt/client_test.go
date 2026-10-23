@@ -8,6 +8,7 @@ import (
 	"time"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
+	"rallyx.local/core/internal/contracts"
 	"rallyx.local/core/internal/telemetry"
 	"rallyx.local/core/internal/testutil"
 )
@@ -21,10 +22,11 @@ func TestBrokerTelemetryPersistsBeforeAcknowledgement(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	id := fmt.Sprintf("mqtt-%d", time.Now().UnixNano())
-	if _, err := pool.Exec(ctx, "INSERT INTO assets(id,panel_id,name) VALUES($1,'demo-panel',$1)", id); err != nil {
+	if _, err := pool.Exec(ctx, "INSERT INTO assets(id,area_id,name) VALUES($1,'demo-area',$1)", id); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, "INSERT INTO tags(id,asset_id,key,name,datatype,semantic) VALUES($1,$2,'run','Run','boolean','run')", id+"-run", id); err != nil {
+	deviceID := testutil.Device(t, pool, id)
+	if _, err := pool.Exec(ctx, "INSERT INTO tags(id,asset_id,device_id,key,name,datatype,data_type,semantic) VALUES($1,$2,$3,'run','Run','boolean','bool','run')", id+"-run", id, deviceID); err != nil {
 		t.Fatal(err)
 	}
 	client, err := Connect(ctx, address, id, &telemetry.Engine{Pool: pool})
@@ -38,9 +40,13 @@ func TestBrokerTelemetryPersistsBeforeAcknowledgement(t *testing.T) {
 		t.Fatal("publisher connect failed")
 	}
 	defer publisher.Disconnect(100)
-	payload := fmt.Sprintf(`{"ts":%q,"tags":{"run":true},"quality":"good"}`, time.Now().UTC().Format(time.RFC3339Nano))
+	payload := fmt.Sprintf(`{"timestamp":%q,"device_id":%q,"asset_id":%q,"values":{"run":true},"quality":"GOOD"}`, time.Now().UTC().Format(time.RFC3339Nano), deviceID, id)
+	topic, err := contracts.DeviceTopic(deviceID, "telemetry")
+	if err != nil {
+		t.Fatal(err)
+	}
 	for i := 0; i < 2; i++ {
-		token = publisher.Publish("rallyx/demo-site/"+id+"/telemetry", 1, false, payload)
+		token = publisher.Publish(topic, 1, false, payload)
 		if !token.WaitTimeout(5*time.Second) || token.Error() != nil {
 			t.Fatal("publish failed")
 		}

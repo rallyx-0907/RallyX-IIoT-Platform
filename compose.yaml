@@ -77,6 +77,8 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set initial admin password}
       SESSION_SECRET: ${SESSION_SECRET:?Set session secret}
+      CONNECTIVITY_TOKEN: ${CONNECTIVITY_TOKEN:-}
+      CONNECTIVITY_URL: http://connectivity:8090
       DEMO_SEED: ${DEMO_SEED:-true}
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     depends_on:
@@ -86,6 +88,28 @@ services:
         condition: service_healthy
     healthcheck:
       test: [CMD, /rallyx-core, -healthcheck]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  connectivity:
+    <<: *runtime
+    profiles: [connectivity]
+    image: rallyx/connectivity:${RALLYX_VERSION:-0.1.0}
+    build:
+      context: .
+      dockerfile: apps/connectivity/Dockerfile
+    environment:
+      CORE_URL: http://core:8081
+      MQTT_URL: mqtt://broker:1883
+      CONNECTIVITY_TOKEN: ${CONNECTIVITY_TOKEN:-}
+    depends_on:
+      core:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8090/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 10

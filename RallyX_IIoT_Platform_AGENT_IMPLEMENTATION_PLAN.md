@@ -1037,7 +1037,10 @@ Connectivity foundation continuation (local amendment):
 - [x] Shared JavaScript device topic/payload helpers and typed scalar/register decoder verified with Node tests.
 - [x] Device worker reconciliation, isolated failure/recovery, disabled-worker shutdown and in-flight removal verified with Node tests.
 - [x] Configuration-driven Simulator read adapter verified; missing readings are rejected and scaling remains in Core.
-- [ ] Runnable connectivity service, MQTT/Modbus adapters, Test Connection/Test Read and container acceptance.
+- [x] Runnable connectivity service, authenticated dynamic config/status, MQTT and Modbus TCP adapters verified in Linux containers.
+- [x] Administrator Test Connection/Test Read, five-tag API configuration, history and automatic Modbus recovery verified without runtime restart.
+- [x] RTU serial ownership/late-open, TCP timeout cleanup, MQTT FIFO bursts and diagnostic cancellation covered by regressions.
+- [ ] Physical RTU transport acceptance and complete configuration UI/producer migration before coordinated rollout.
 
 Add one line after each completed task group. Keep notes short and factual.
 
@@ -1046,6 +1049,7 @@ Add one line after each completed task group. Keep notes short and factual.
 | 2026-10-23 | — | Plan created | ✅ | Architecture converted to agent-executable checklist. |
 | 2026-10-23 | Codex | Local extensibility amendment | In progress | Local change spec read in full; hierarchy, telemetry and active V1 scope updated. Existing baseline unit/integration tests and Web build pass; migration to amended model is required before declaring the changed milestones complete. |
 | 2026-10-23 | Codex | Connectivity worker foundation | In progress | Seven Node connectivity/contract tests pass. Full real TimescaleDB/Mosquitto backend suite passes, including service-token credential boundary and CSV/dashboard/archive API regression. Runtime service and remaining adapters are pending; development images remain baseline. |
+| 2026-10-23 | Codex | Dynamic connectivity service and diagnostics | Backend verified | Separate Linux test Core/worker verifies dynamic Modbus connection/device/five tags, raw/decoded/scaled Test Read, history and timeout/recovery; real-broker MQTT mapping/FIFO passes. Independent review fixes have regressions. Physical RTU/UI acceptance and coordinated rollout remain open. |
 | | | | | |
 | | | | | |
 | | | | | |

@@ -88,7 +88,7 @@ func registerHistory(mux *http.ServeMux, pool *pgxpool.Pool, hub *realtime.Hub) 
 				apiError(w, storage.ErrValidation)
 				return
 			}
-			query = "SELECT time_bucket($6::interval,ts) AS ts,avg((value#>>'{}')::float8) AS value,'good' AS quality,count(*) AS samples FROM telemetry_samples WHERE tag_id=$1 AND ts>=$2 AND ts<$3 AND quality='good' AND jsonb_typeof(value)='number' GROUP BY 1 ORDER BY 1 LIMIT $4 OFFSET $5"
+			query = "SELECT time_bucket($6::interval,ts) AS ts,avg((value#>>'{}')::float8) AS value,'GOOD' AS quality,count(*) AS samples FROM telemetry_samples WHERE tag_id=$1 AND ts>=$2 AND ts<$3 AND upper(quality)='GOOD' AND jsonb_typeof(value)='number' GROUP BY 1 ORDER BY 1 LIMIT $4 OFFSET $5"
 			args = append(args, bucket)
 		}
 		result, err := store.List(r.Context(), query, args...)

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WorkerManager } from './workers.mjs';
+import { simulatorAdapter } from './simulator.mjs';
 
 const configuration = () => [{ id: 'line', enabled: true, protocol: 'simulator', polling_interval_ms: 100,
   devices: ['broken', 'healthy'].map(id => ({ id, asset_id: 'asset', enabled: true,
@@ -32,6 +33,66 @@ test('device failure is isolated; retry recovers and publishes raw values exactl
   await manager.tick();
   assert.equal(messages.filter(message => message.topic.includes('/broken/')).length, 1);
   assert.equal(statuses.at(-1).status, 'CONNECTED');
+  await manager.close();
+});
+
+test('MQTT subscriptions consume every sample for all tags independent of poll intervals', async () => {
+  let now = 0, reads = 0;
+  const messages = [];
+  const manager = new WorkerManager({ now: () => now, createAdapter: async () => ({
+    async read(tags) { reads++; assert.equal(tags.length, 2); return { values: { run: reads === 2, value: reads } }; }, close: async () => {},
+  }), publish: async (topic, payload) => messages.push(payload.values), report: async () => {} });
+  const config = [{ id: 'connection', enabled: true, protocol: 'mqtt', polling_interval_ms: 1000,
+    devices: [{ id: 'device', asset_id: 'asset', enabled: true, tags: [
+      { id: 'run', key: 'run', enabled: true, data_type: 'bool' },
+      { id: 'value', key: 'value', enabled: true, data_type: 'float32', poll_interval_ms: 5000 },
+    ] }] }];
+  await manager.reconcile(config); await manager.tick();
+  now = 100; await manager.tick(); now = 200; await manager.tick();
+  assert.deepEqual(messages.map(values => values.run), [false, true, false]);
+  await manager.close();
+});
+
+test('per-tag polling interval does not republish a slower tag at the connection rate', async () => {
+  let now = 0;
+  const messages = [];
+  const config = [{ id: 'connection', enabled: true, protocol: 'simulator', polling_interval_ms: 100,
+    protocol_config: { values: { fast: 1, slow: 2 } }, devices: [{ id: 'device', asset_id: 'asset', enabled: true,
+      tags: [{ id: 'fast', key: 'fast', enabled: true, data_type: 'float32' },
+        { id: 'slow', key: 'slow', enabled: true, data_type: 'float32', poll_interval_ms: 500 }] }] }];
+  const manager = new WorkerManager({ now: () => now, createAdapter: simulatorAdapter,
+    publish: async (topic, payload) => messages.push(payload.values), report: async () => {} });
+  await manager.reconcile(config); await manager.tick();
+  now = 100; await manager.tick();
+  now = 500; await manager.tick();
+  assert.deepEqual(messages, [{ fast: 1, slow: 2 }, { fast: 1 }, { fast: 1, slow: 2 }]);
+  await manager.close();
+});
+
+test('configured retry attempts and backoff bound each failed cycle while permitting recovery', async () => {
+  let now = 0, reads = 0;
+  const manager = new WorkerManager({ now: () => now, createAdapter: async () => ({
+    read: async () => { reads++; throw Error('offline'); }, close: async () => {},
+  }), publish: async () => assert.fail(), report: async () => {} });
+  const config = configuration(); config[0].devices = [config[0].devices[0]];
+  config[0].retry_policy = { max_attempts: 2, backoff_ms: 500, max_backoff_ms: 600 };
+  await manager.reconcile(config); await manager.tick(); assert.equal(reads, 2);
+  now = 499; await manager.tick(); assert.equal(reads, 2);
+  now = 500; await manager.tick(); assert.equal(reads, 4);
+  now = 1099; await manager.tick(); assert.equal(reads, 4);
+  now = 1100; await manager.tick(); assert.equal(reads, 6);
+  await manager.close();
+});
+
+test('hung adapter reads time out and report failure without blocking future polls', async () => {
+  const statuses = [];
+  let closed = 0;
+  const manager = new WorkerManager({ createAdapter: async () => ({
+    read: () => new Promise(() => {}), close: async () => { closed++; },
+  }), publish: async () => assert.fail('must not publish a timed out read'), report: async status => statuses.push(status) });
+  const config = configuration(); config[0].timeout_ms = 100; config[0].devices = [config[0].devices[0]];
+  await manager.reconcile(config); await manager.tick();
+  assert.equal(statuses[0].status, 'ERROR'); assert.ok(closed > 0);
   await manager.close();
 });
 

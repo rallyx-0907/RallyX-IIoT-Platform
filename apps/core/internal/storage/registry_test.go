@@ -23,11 +23,12 @@ func TestConfigurationEditsPreserveStateIntegrity(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT id FROM users WHERE username=$1", id).Scan(&actor); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, "INSERT INTO assets(id,panel_id,name) VALUES($1,'demo-panel',$1)", id); err != nil {
+	if _, err := pool.Exec(ctx, "INSERT INTO assets(id,area_id,name) VALUES($1,'demo-area',$1)", id); err != nil {
 		t.Fatal(err)
 	}
+	deviceID := testutil.Device(t, pool, id)
 	for _, tag := range []struct{ key, datatype, semantic string }{{"run", "boolean", "run"}, {"current", "number", ""}} {
-		if _, err := pool.Exec(ctx, "INSERT INTO tags(id,asset_id,key,name,datatype,semantic) VALUES($1,$2,$3,$3,$4,$5)", id+"-"+tag.key, id, tag.key, tag.datatype, tag.semantic); err != nil {
+		if _, err := pool.Exec(ctx, "INSERT INTO tags(id,asset_id,device_id,key,name,datatype,data_type,semantic) VALUES($1,$2,$6,$3,$3,$4,CASE WHEN $4='boolean' THEN 'bool' ELSE 'float64' END,$5)", id+"-"+tag.key, id, tag.key, tag.datatype, tag.semantic, deviceID); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -35,7 +36,7 @@ func TestConfigurationEditsPreserveStateIntegrity(t *testing.T) {
 		t.Fatal(err)
 	}
 	engine := telemetry.Engine{Pool: pool}
-	if err := engine.Process(ctx, telemetry.Message{SiteID: "demo-site", AssetID: id, Timestamp: time.Now().Add(-time.Minute), Quality: "good", Tags: map[string]json.RawMessage{"run": json.RawMessage("true"), "current": json.RawMessage("20")}}); err != nil {
+	if err := engine.Process(ctx, telemetry.Message{DeviceID: deviceID, AssetID: id, Timestamp: time.Now().Add(-time.Minute), Quality: "good", Tags: map[string]json.RawMessage{"run": json.RawMessage("true"), "current": json.RawMessage("20")}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := engine.Sweep(ctx, time.Now()); err != nil {

@@ -93,7 +93,11 @@ func run(ctx context.Context) error {
 	}
 	hub := realtime.NewHub()
 	engine := &telemetry.Engine{Pool: pool, Broadcast: hub.Broadcast}
-	broker, err := mqtt.Connect(ctx, os.Getenv("MQTT_URL"), "rallyx-core", engine)
+	clientID := os.Getenv("MQTT_CLIENT_ID")
+	if clientID == "" {
+		clientID = "rallyx-core"
+	}
+	broker, err := mqtt.Connect(ctx, os.Getenv("MQTT_URL"), clientID, engine)
 	if err != nil {
 		return errors.New("MQTT unavailable at startup")
 	}

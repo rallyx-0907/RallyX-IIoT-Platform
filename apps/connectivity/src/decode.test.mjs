@@ -12,6 +12,11 @@ test('Modbus signed values and byte/word ordering decode correctly', () => {
   assert.throws(() => decodeRegisters([0], { data_type: 'float32' }));
 });
 
+test('invalid bit positions and register counts fail instead of silently decoding another value', () => {
+  for (const bit_index of [-1, 16, 1.5, 'bad']) assert.throws(() => decodeRegisters([1], { data_type: 'bool', metadata: { bit_index } }));
+  for (const register_count of [0, 126, 1.5, 'bad']) assert.throws(() => decodeRegisters([65, 0], { data_type: 'string', metadata: { register_count } }));
+});
+
 test('MQTT conversion rejects missing/empty/invalid values instead of inventing zero', () => {
   assert.equal(decodeScalar('7.42', 'float32'), 7.42);
   assert.equal(decodeScalar(1, 'bool'), true);

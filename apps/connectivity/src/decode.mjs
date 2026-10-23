@@ -32,11 +32,15 @@ export function decodeScalar(raw, kind) {
 }
 
 export function registerCount(tag) {
-  return ({ bool: 1, int16: 1, uint16: 1, int32: 2, uint32: 2, float32: 2, float64: 4, string: Math.min(125, Math.max(1, Number(tag.metadata?.register_count || 8))) })[tag.data_type] || 1;
+  const count = tag.metadata?.register_count ?? 8;
+  if (!Number.isInteger(count) || count < 1 || count > 125) throw new Error('Invalid register count');
+  return ({ bool: 1, int16: 1, uint16: 1, int32: 2, uint32: 2, float32: 2, float64: 4, string: count })[tag.data_type] || 1;
 }
 
 export function decodeRegisters(registers, tag) {
   const count = registerCount(tag);
+  const bit = tag.metadata?.bit_index;
+  if (bit !== undefined && (!Number.isInteger(bit) || bit < 0 || bit > 15)) throw new Error('Invalid bit index');
   if (!Array.isArray(registers) || registers.length < count) throw new Error('Incomplete Modbus response');
   if (tag.data_type === 'bool' && typeof registers[0] === 'boolean') return registers[0];
   const words = registers.slice(0, count);
