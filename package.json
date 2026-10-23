@@ -1,0 +1,18 @@
+{
+  "name": "rallyx-iiot-platform",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "node scripts/tasks.mjs dev",
+    "up": "node scripts/tasks.mjs up",
+    "down": "node scripts/tasks.mjs down",
+    "logs": "node scripts/tasks.mjs logs",
+    "test": "node scripts/tasks.mjs test",
+    "lint": "node scripts/tasks.mjs lint",
+    "build": "node scripts/tasks.mjs build",
+    "e2e": "node scripts/tasks.mjs e2e",
+    "backup": "node scripts/tasks.mjs backup",
+    "package-offline": "node scripts/tasks.mjs package-offline"
+  },
+  "engines": { "node": ">=22" }
+}

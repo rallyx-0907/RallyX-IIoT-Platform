@@ -1,0 +1,202 @@
+[
+  {
+    "id": "rallyx-simulator",
+    "type": "tab",
+    "label": "RallyX zero-hardware simulator"
+  },
+  {
+    "id": "rallyx-mqtt-config",
+    "type": "mqtt-broker",
+    "name": "Internal Mosquitto",
+    "broker": "broker",
+    "port": "1883",
+    "clientid": "rallyx-simulator",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "30",
+    "cleansession": true
+  },
+  {
+    "id": "tick",
+    "type": "inject",
+    "z": "rallyx-simulator",
+    "name": "Fresh snapshot every 2 seconds",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "2",
+    "once": true,
+    "onceDelay": "3",
+    "wires": [
+      [
+        "publish"
+      ]
+    ],
+    "x": 160,
+    "y": 80
+  },
+  {
+    "id": "publish",
+    "type": "function",
+    "z": "rallyx-simulator",
+    "name": "Normalize simulator telemetry",
+    "func": "function telemetryMessages(config, state, now) {\n  if (!state.enabled) return [];\n  for (const value of Object.values(config)) if (!/^[a-zA-Z0-9_-]{1,64}$/.test(value)) throw new Error('Invalid simulator asset/site configuration');\n  const make = (asset, tags) => ({ topic: `rallyx/${config.siteId}/${asset}/telemetry`, payload: JSON.stringify({ ts: now.toISOString(), tags, quality: 'good' }), qos: 1, retain: false });\n  return [make(config.motorId, { run: state.run, fault: state.fault, current: state.current }), make(config.sensorId, { value: state.value })];\n}\nlet state = flow.get('controls') || { enabled: env.get('SIMULATOR_ENABLED') === 'true', run: false, fault: false, current: 0, value: 25 };\nif (env.get('SIMULATOR_ENABLED') !== 'true') return null;\nreturn [telemetryMessages({siteId:env.get('SIMULATOR_SITE_ID'),motorId:env.get('SIMULATOR_MOTOR_ASSET_ID'),sensorId:env.get('SIMULATOR_SENSOR_ASSET_ID')},state,new Date())];",
+    "outputs": 1,
+    "wires": [
+      [
+        "mqtt-out"
+      ]
+    ],
+    "x": 450,
+    "y": 80
+  },
+  {
+    "id": "mqtt-out",
+    "type": "mqtt out",
+    "z": "rallyx-simulator",
+    "name": "Production telemetry contract",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "broker": "rallyx-mqtt-config",
+    "wires": [],
+    "x": 740,
+    "y": 80
+  },
+  {
+    "id": "mqtt-status",
+    "type": "status",
+    "z": "rallyx-simulator",
+    "name": "Broker connectivity",
+    "scope": [
+      "mqtt-out"
+    ],
+    "wires": [
+      [
+        "mqtt-health"
+      ]
+    ],
+    "x": 160,
+    "y": 180
+  },
+  {
+    "id": "mqtt-health",
+    "type": "function",
+    "z": "rallyx-simulator",
+    "name": "Track broker health",
+    "func": "flow.set('mqtt_healthy',msg.status.fill==='green'); return null;",
+    "outputs": 1,
+    "wires": [],
+    "x": 450,
+    "y": 180
+  },
+  {
+    "id": "health-in",
+    "type": "http in",
+    "z": "rallyx-simulator",
+    "name": "Health",
+    "url": "/health",
+    "method": "get",
+    "upload": false,
+    "wires": [
+      [
+        "health-body"
+      ]
+    ],
+    "x": 740,
+    "y": 180
+  },
+  {
+    "id": "health-body",
+    "type": "function",
+    "z": "rallyx-simulator",
+    "name": "Health body",
+    "func": "const healthy=flow.get('mqtt_healthy')===true;msg.statusCode=healthy?200:503;msg.payload={healthy,mqtt:healthy}; return msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "http-out"
+      ]
+    ],
+    "x": 160,
+    "y": 280
+  },
+  {
+    "id": "controls-get",
+    "type": "http in",
+    "z": "rallyx-simulator",
+    "name": "Read simulator controls",
+    "url": "/simulator",
+    "method": "get",
+    "upload": false,
+    "wires": [
+      [
+        "controls-read"
+      ]
+    ],
+    "x": 450,
+    "y": 280
+  },
+  {
+    "id": "controls-read",
+    "type": "function",
+    "z": "rallyx-simulator",
+    "name": "Current controls",
+    "func": "let state = flow.get('controls') || { enabled: env.get('SIMULATOR_ENABLED') === 'true', run: false, fault: false, current: 0, value: 25 };\nmsg.payload={...state,available:env.get('SIMULATOR_ENABLED')==='true'}; return msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "http-out"
+      ]
+    ],
+    "x": 740,
+    "y": 280
+  },
+  {
+    "id": "controls-post",
+    "type": "http in",
+    "z": "rallyx-simulator",
+    "name": "Change simulator controls",
+    "url": "/simulator",
+    "method": "post",
+    "upload": false,
+    "wires": [
+      [
+        "controls-write"
+      ]
+    ],
+    "x": 160,
+    "y": 380
+  },
+  {
+    "id": "controls-write",
+    "type": "function",
+    "z": "rallyx-simulator",
+    "name": "Validate and save controls",
+    "func": "function updateControls(state, input) {\n  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Controls must be an object');\n  for (const [key, value] of Object.entries(input)) {\n    if (['enabled', 'run', 'fault'].includes(key)) {\n      if (typeof value !== 'boolean') throw new Error(`${key} must be boolean`);\n    } else if (['current', 'value'].includes(key)) {\n      if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > 1e9) throw new Error(`${key} must be a finite number`);\n    } else throw new Error(`Unknown control: ${key}`);\n  }\n  return { ...state, ...input };\n}\nlet state = flow.get('controls') || { enabled: env.get('SIMULATOR_ENABLED') === 'true', run: false, fault: false, current: 0, value: 25 };\ntry { if(env.get('SIMULATOR_ENABLED')!=='true') {msg.statusCode=403;msg.payload={error:{message:'Simulator disabled by installation configuration'}};return msg;} state=updateControls(state,msg.payload); flow.set('controls',state);msg.payload={...state,available:true}; } catch(error) {msg.statusCode=422;msg.payload={error:{message:error.message}};} return msg;",
+    "outputs": 1,
+    "wires": [
+      [
+        "http-out"
+      ]
+    ],
+    "x": 450,
+    "y": 380
+  },
+  {
+    "id": "http-out",
+    "type": "http response",
+    "z": "rallyx-simulator",
+    "name": "JSON response",
+    "statusCode": "",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "wires": [],
+    "x": 740,
+    "y": 380
+  }
+]

@@ -1,0 +1,113 @@
+name: rallyx
+
+x-runtime: &runtime
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  db:
+    <<: *runtime
+    image: timescale/timescaledb:2.20.3-pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rallyx}
+      POSTGRES_USER: ${POSTGRES_USER:-rallyx}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      TZ: UTC
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    shm_size: 128mb
+
+  broker:
+    <<: *runtime
+    image: eclipse-mosquitto:2.0.22
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-data:/mosquitto/data
+      - mqtt-log:/mosquitto/log
+    healthcheck:
+      test: [CMD, mosquitto_pub, -h, localhost, -t, rallyx/health, -m, probe]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  node-red:
+    <<: *runtime
+    image: nodered/node-red:4.0.9
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET:?Set Node-RED credential secret}
+      SIMULATOR_ENABLED: ${SIMULATOR_ENABLED:-true}
+      FLOWS: /opt/rallyx/simulator.json
+      SIMULATOR_SITE_ID: ${SIMULATOR_SITE_ID:-demo-site}
+      SIMULATOR_MOTOR_ASSET_ID: ${SIMULATOR_MOTOR_ASSET_ID:-demo-motor}
+      SIMULATOR_SENSOR_ASSET_ID: ${SIMULATOR_SENSOR_ASSET_ID:-demo-sensor}
+    volumes:
+      - node-red-data:/data
+      - ./connectors/node-red/settings.js:/data/settings.js:ro
+      - ./connectors/node-red/flows/simulator.json:/opt/rallyx/simulator.json:ro
+    depends_on:
+      broker:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "require('http').get('http://127.0.0.1:1880/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  core:
+    <<: *runtime
+    image: rallyx/core:${RALLYX_VERSION:-0.1.0}
+    build:
+      context: apps/core
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-rallyx}:${POSTGRES_PASSWORD:?Set database password}@db:5432/${POSTGRES_DB:-rallyx}?sslmode=disable
+      MQTT_URL: tcp://broker:1883
+      NODE_RED_URL: http://node-red:1880
+      HTTP_ADDR: :8081
+      TRUSTED_PROXY_HOST: web
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set initial admin password}
+      SESSION_SECRET: ${SESSION_SECRET:?Set session secret}
+      DEMO_SEED: ${DEMO_SEED:-true}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, /rallyx-core, -healthcheck]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    <<: *runtime
+    image: rallyx/web:${RALLYX_VERSION:-0.1.0}
+    build:
+      context: apps/web
+    ports:
+      - '${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:8080'
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:8080/healthz]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:
+  mqtt-data:
+  mqtt-log:
+  node-red-data:
