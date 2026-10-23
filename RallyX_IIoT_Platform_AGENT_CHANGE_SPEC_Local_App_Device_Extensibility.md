@@ -8,6 +8,16 @@
 >
 > **Quy tắc tracking:** Chỉ tick `- [x]` khi code đã hoàn thành, test đã pass và acceptance criteria tương ứng đã được verify.
 
+> **Đồng bộ tiến độ 2026-10-23 — mã nguồn `3896305`:** Các mục backend/API, model, migration, template, CSV và connectivity đã được tích trực tiếp bên dưới theo bằng chứng tại [bảng đối chiếu](docs/checklist-evidence.md). `[x]` chỉ xác nhận đúng phạm vi của mục đó; không đồng nghĩa tính năng đã có Web UI hoặc đã nâng cấp bản đang chạy. Các mục UI, acceptance theo kịch bản, RTU phần cứng và deployment vẫn mở. Mục chưa tích có thể đã có một phần code nhưng chưa đủ bằng chứng hoàn thành.
+
+| Nhóm | Tiến độ đã xác minh | Còn lại |
+|---|---|---|
+| Model / Core API / telemetry | Entity local, CRUD, validation, history, lifecycle giữ dữ liệu | Nghiệm thu đồng bộ với UI/producer mới |
+| Template / CSV / dashboard | Template clone 10 devices; CSV 120 tags atomic; widget lưu theo user | UI template/CSV/pinning; restart toàn stack |
+| Connectivity | Simulator, MQTT, Modbus TCP, reload, Test Connection/Test Read; Docker acceptance 23/23 | RTU phần cứng; workflow bằng UI |
+| Runtime / Alarm | Transition, session, chống trùng, high/hysteresis, stale, ack/clear | Digital OFF, debounce, reset counter; coverage mở rộng |
+| Vận hành / release | Compose và health check | Offline, reboot, backup/restore, update/rollback, bundle đa kiến trúc |
+
 ---
 
 # 1. Phạm vi hiện tại
@@ -15,6 +25,8 @@
 RallyX V1 phải tập trung vào **một instance local/on-prem** phục vụ một hệ thống/nhà máy tại một thời điểm.
 
 ## Trong phạm vi V1
+
+Danh sách sản phẩm tổng thể này giữ theo acceptance tích hợp; tiến độ backend/API được tích ở các mục chi tiết và các tiêu chí tương ứng trong §18. Chưa tích toàn bộ tính năng ở đây chỉ từ bằng chứng API riêng lẻ.
 
 - [ ] Chạy local trên Linux.
 - [ ] Có Web App truy cập bằng trình duyệt.
@@ -51,12 +63,12 @@ Các mục dưới đây **không được build ở thời điểm hiện tại
 
 ## A1. Không hard-code thiết bị/use case
 
-- [ ] Không hard-code `Pump01`, `Motor01`, `VFD01` hoặc bất kỳ thiết bị cụ thể nào trong RallyX Core.
-- [ ] Seed data chỉ dùng để demo và phải đi qua cùng data model/API như dữ liệu thật.
-- [ ] Web UI không phụ thuộc danh sách thiết bị cố định trong source code.
+- [x] Không hard-code `Pump01`, `Motor01`, `VFD01` hoặc bất kỳ thiết bị cụ thể nào trong RallyX Core.
+- [x] Seed data chỉ dùng để demo và phải đi qua cùng data model/API như dữ liệu thật.
+- [x] Web UI không phụ thuộc danh sách thiết bị cố định trong source code.
 - [ ] Dashboard render từ metadata/config của Asset/Device/Tag.
-- [ ] Alarm engine không biết thiết bị là motor, pump hay sensor.
-- [ ] Runtime engine không biết thiết bị là motor, pump hay fan.
+- [x] Alarm engine không biết thiết bị là motor, pump hay sensor.
+- [x] Runtime engine không biết thiết bị là motor, pump hay fan.
 
 **Acceptance criterion**
 
@@ -90,25 +102,25 @@ Trong đó:
 - `Device`: PLC, VFD, power meter, remote I/O, sensor gateway...
 - `Tag`: data point đọc được từ Device hoặc tính toán từ dữ liệu.
 
-- [ ] Có entity `Site`.
-- [ ] Có entity `Area`.
-- [ ] Có entity `Asset`.
-- [ ] Có entity `Device`.
-- [ ] Có entity `Tag`.
-- [ ] Không có `Tenant` trong V1.
-- [ ] Không có `EdgeNode` / `EdgeRegistry` trong V1.
-- [ ] Mọi telemetry phải truy vết được về Device + Tag + Asset.
+- [x] Có entity `Site`.
+- [x] Có entity `Area`.
+- [x] Có entity `Asset`.
+- [x] Có entity `Device`.
+- [x] Có entity `Tag`.
+- [x] Không có `Tenant` trong V1.
+- [x] Không có `EdgeNode` / `EdgeRegistry` trong V1.
+- [x] Mọi telemetry phải truy vết được về Device + Tag + Asset.
 
 ---
 
 ## A3. API-first
 
-- [ ] Web App chỉ giao tiếp với RallyX Core qua REST API / WebSocket.
-- [ ] Web App không đọc database trực tiếp.
-- [ ] Node-RED không ghi trực tiếp vào database business của RallyX.
-- [ ] Node-RED chỉ đóng vai trò connectivity/adapter khi cần.
-- [ ] Core là nơi xử lý metadata, runtime, event, alarm, history routing và API.
-- [ ] MQTT là data bus/connectivity mechanism, không phải business database.
+- [x] Web App chỉ giao tiếp với RallyX Core qua REST API / WebSocket.
+- [x] Web App không đọc database trực tiếp.
+- [x] Node-RED không ghi trực tiếp vào database business của RallyX.
+- [x] Node-RED chỉ đóng vai trò connectivity/adapter khi cần.
+- [x] Core là nơi xử lý metadata, runtime, event, alarm, history routing và API.
+- [x] MQTT là data bus/connectivity mechanism, không phải business database.
 
 ---
 
@@ -118,9 +130,9 @@ Connection đại diện cho một kênh kết nối vật lý hoặc network.
 
 ## Protocol V1 bắt buộc
 
-- [ ] Simulator
-- [ ] MQTT
-- [ ] Modbus TCP
+- [x] Simulator
+- [x] MQTT
+- [x] Modbus TCP
 - [ ] Modbus RTU
 
 ## Schema logic tối thiểu
@@ -143,25 +155,27 @@ Connection
 
 ## B1. Connection CRUD
 
-- [ ] CRUD Connection API.
+- [x] CRUD Connection API.
 - [ ] UI `Settings > Connections`.
 - [ ] Nút `Test Connection`.
-- [ ] Validate protocol config trước Save.
-- [ ] Thêm/sửa Connection không yêu cầu restart toàn platform.
-- [ ] Một Connection lỗi không được làm crash Core hoặc worker khác.
-- [ ] Có trạng thái `CONNECTED`, `DISCONNECTED`, `ERROR`, `DISABLED`.
+- [x] Validate protocol config trước Save.
+- [x] Thêm/sửa Connection không yêu cầu restart toàn platform.
+- [x] Một Connection lỗi không được làm crash Core hoặc worker khác.
+- [x] Có trạng thái `CONNECTED`, `DISCONNECTED`, `ERROR`, `DISABLED`.
 - [ ] Hiển thị `last_seen` / `last_successful_poll`.
 
 ## B2. Modbus TCP config
 
-- [ ] Host/IP.
-- [ ] Port, default `502`.
-- [ ] Unit/Slave ID khi cần.
-- [ ] Timeout.
-- [ ] Polling interval.
-- [ ] Retry policy.
+- [x] Host/IP.
+- [x] Port, default `502`.
+- [x] Unit/Slave ID khi cần.
+- [x] Timeout.
+- [x] Polling interval.
+- [x] Retry policy.
 
 ## B3. Modbus RTU config
+
+Adapter và trường cấu hình đã có trong code; queue/close/late-open đã có regression. Các mục serial/framing chưa tích vì chưa kiểm chứng transport RTU thật. Timeout và lịch polling được kiểm thử ở tầng worker chung.
 
 - [ ] Serial device `/dev/ttyUSBx` hoặc mapping tương đương.
 - [ ] Baudrate.
@@ -169,18 +183,18 @@ Connection
 - [ ] Parity.
 - [ ] Stopbits.
 - [ ] Slave ID.
-- [ ] Timeout.
-- [ ] Polling interval.
+- [x] Timeout.
+- [x] Polling interval.
 
 ## B4. MQTT config
 
-- [ ] Broker URL/IP.
-- [ ] Port.
+- [x] Broker URL/IP.
+- [x] Port.
 - [ ] TLS enable/disable.
-- [ ] Username/password hoặc secret reference.
-- [ ] Topic subscription.
+- [x] Username/password hoặc secret reference.
+- [x] Topic subscription.
 - [ ] Reconnect policy.
-- [ ] Payload mapping.
+- [x] Payload mapping.
 
 ---
 
@@ -204,18 +218,18 @@ Device
 - updated_at
 ```
 
-- [ ] CRUD Device API.
+- [x] CRUD Device API.
 - [ ] UI Add/Edit/Delete Device.
-- [ ] Device chọn Connection có sẵn.
-- [ ] Device có thể chọn Device Template hoặc khai báo thủ công.
-- [ ] Disable Device phải dừng polling nhưng không xóa history.
-- [ ] Xóa Device phải có confirmation và policy rõ với history cũ.
+- [x] Device chọn Connection có sẵn.
+- [x] Device có thể chọn Device Template hoặc khai báo thủ công.
+- [x] Disable Device phải dừng polling nhưng không xóa history.
+- [x] Xóa Device phải có confirmation và policy rõ với history cũ.
 
 ## Core acceptance criterion
 
 > **Adding a new device using an already-supported protocol must not require recompiling or modifying RallyX source code.**
 
-- [ ] Viết integration test cho acceptance criterion trên.
+- [x] Viết integration test cho acceptance criterion trên.
 
 ---
 
@@ -248,29 +262,31 @@ Tag
 
 ## Data type tối thiểu
 
-- [ ] bool
-- [ ] int16
-- [ ] uint16
-- [ ] int32
-- [ ] uint32
-- [ ] float32
-- [ ] float64 khi connector hỗ trợ
+- [x] bool
+- [x] int16
+- [x] uint16
+- [x] int32
+- [x] uint32
+- [x] float32
+- [x] float64 khi connector hỗ trợ
 - [ ] string cho MQTT mapping khi cần
 
 ## Tag functionality
 
-- [ ] CRUD Tag API.
+Các cờ history/realtime và deadband đã có schema/code nhưng chưa được tích riêng khi chưa có đủ kiểm thử bật/tắt tương ứng. Tag Editor UI còn phải chuyển sang device model.
+
+- [x] CRUD Tag API.
 - [ ] Tag Editor UI.
-- [ ] Validate duplicate `key` trong cùng Device.
-- [ ] Scale.
-- [ ] Offset.
-- [ ] Unit.
+- [x] Validate duplicate `key` trong cùng Device.
+- [x] Scale.
+- [x] Offset.
+- [x] Unit.
 - [ ] History enable/disable.
 - [ ] Realtime enable/disable.
 - [ ] Deadband / change-of-value.
-- [ ] Poll interval override.
-- [ ] Byte order / word order cho Modbus.
-- [ ] Quality state: `GOOD`, `BAD`, `UNCERTAIN`, `STALE`.
+- [x] Poll interval override.
+- [x] Byte order / word order cho Modbus.
+- [x] Quality state: `GOOD`, `BAD`, `UNCERTAIN`, `STALE`.
 
 ---
 
@@ -292,9 +308,9 @@ rallyx/v1/device/{deviceId}/status
 
 Hoặc connector nội bộ có thể gọi Core trực tiếp qua interface chuẩn nếu không cần MQTT.
 
-- [ ] Topic builder nằm trong shared package.
+- [x] Topic builder nằm trong shared package.
 - [ ] Không hard-code topic ở nhiều module.
-- [ ] MQTT topic phải map được về `device_id`.
+- [x] MQTT topic phải map được về `device_id`.
 
 ## C2. Normalized telemetry payload
 
@@ -312,11 +328,11 @@ Hoặc connector nội bộ có thể gọi Core trực tiếp qua interface chu
 }
 ```
 
-- [ ] Core validate payload schema.
-- [ ] Malformed payload không được làm crash ingestion pipeline.
-- [ ] Preserve source timestamp nếu hợp lệ.
-- [ ] Có server receive timestamp để debug latency/clock drift.
-- [ ] Unknown tag phải có handling rõ: reject, log hoặc auto-map theo config; không được tạo ngầm không kiểm soát.
+- [x] Core validate payload schema.
+- [x] Malformed payload không được làm crash ingestion pipeline.
+- [x] Preserve source timestamp nếu hợp lệ.
+- [x] Có server receive timestamp để debug latency/clock drift.
+- [x] Unknown tag phải có handling rõ: reject, log hoặc auto-map theo config; không được tạo ngầm không kiểm soát.
 
 ---
 
@@ -351,17 +367,17 @@ Tags:
 - Alarm Code
 ```
 
-- [ ] CRUD Device Template API.
+- [x] CRUD Device Template API.
 - [ ] Device Template UI.
-- [ ] Tạo Device từ Template.
-- [ ] Clone Tag definitions thành Tag instance.
-- [ ] Cho phép override connection/slave ID/address.
-- [ ] Update Template không được phá Tag instance đang chạy.
-- [ ] Có version cho Template.
+- [x] Tạo Device từ Template.
+- [x] Clone Tag definitions thành Tag instance.
+- [x] Cho phép override connection/slave ID/address.
+- [x] Update Template không được phá Tag instance đang chạy.
+- [x] Có version cho Template.
 
 **Acceptance criterion**
 
-- [ ] Tạo 10 thiết bị cùng model từ một Template chỉ cần nhập tên + slave/device address riêng.
+- [x] Tạo 10 thiết bị cùng model từ một Template chỉ cần nhập tên + slave/device address riêng.
 
 ---
 
@@ -378,12 +394,12 @@ VFD01,frequency,40012,float32,Hz,0.01,true
 VFD02,current,40010,float32,A,0.1,true
 ```
 
-- [ ] Import CSV preview trước commit.
-- [ ] Validate từng row.
-- [ ] Báo lỗi theo row/column.
-- [ ] Không partial commit khi validation fail trong V1.
-- [ ] Export Device/Tag config ra CSV.
-- [ ] Import 100+ tags không yêu cầu click từng tag.
+- [x] Import CSV preview trước commit.
+- [x] Validate từng row.
+- [x] Báo lỗi theo row/column.
+- [x] Không partial commit khi validation fail trong V1.
+- [x] Export Device/Tag config ra CSV.
+- [x] Import 100+ tags không yêu cầu click từng tag.
 
 ---
 
@@ -404,18 +420,20 @@ Asset Detail
 - History/Trend link
 ```
 
-- [ ] Không tạo page component riêng cho mỗi model thiết bị.
+- [x] Không tạo page component riêng cho mỗi model thiết bị.
 - [ ] Tag `realtime_enabled=true` tự xuất hiện trong Live Data.
 - [ ] Tag `store_history=true` có History/Trend.
-- [ ] Alarm Rule được tạo từ Tag mà không sửa code.
+- [x] Alarm Rule được tạo từ Tag mà không sửa code.
 
 ## F2. Dashboard pinning
+
+Đã kiểm chứng lưu định nghĩa Value/Status/Trend bằng API theo từng user; chưa nghiệm thu render widget, thao tác Pin và restart toàn platform bằng UI.
 
 - [ ] User có thể `Pin to Dashboard` từ một Tag.
 - [ ] Widget tối thiểu: Value.
 - [ ] Widget tối thiểu: Status.
 - [ ] Widget tối thiểu: Trend.
-- [ ] Dashboard config lưu DB.
+- [x] Dashboard config lưu DB.
 - [ ] Restart app không mất dashboard config.
 
 ---
@@ -424,15 +442,17 @@ Asset Detail
 
 ## G1. Runtime rule
 
+Test đã tạo lại `Engine`/`Registry` để kiểm chứng trạng thái lấy từ SQL. Các mục restart toàn tiến trình/platform vẫn mở; không dùng test tạo lại object để tích acceptance restart toàn stack.
+
 ```text
 Runtime source tag = device.run
 RUN condition = true
 ```
 
-- [ ] Runtime counter generic theo Tag config.
-- [ ] Start Count dựa trên `false -> true`.
+- [x] Runtime counter generic theo Tag config.
+- [x] Start Count dựa trên `false -> true`.
 - [ ] Persist runtime qua restart.
-- [ ] Không double-count telemetry duplicate.
+- [x] Không double-count telemetry duplicate.
 - [ ] Cho phép reset counter có audit/log local.
 
 ## G2. Alarm rule
@@ -440,13 +460,13 @@ RUN condition = true
 Tối thiểu hỗ trợ:
 
 - [ ] Digital ON/OFF condition.
-- [ ] High threshold.
+- [x] High threshold.
 - [ ] Low threshold.
 - [ ] Delay/debounce.
-- [ ] Severity.
-- [ ] Acknowledge.
-- [ ] Clear event.
-- [ ] Alarm history.
+- [x] Severity.
+- [x] Acknowledge.
+- [x] Clear event.
+- [x] Alarm history.
 
 Alarm Engine chỉ nhận `Tag ID + Rule Config`; không biết thiết bị là gì.
 
@@ -487,9 +507,9 @@ Settings
 
 ## V1 bắt buộc
 
-- [ ] Simulator.
-- [ ] MQTT.
-- [ ] Modbus TCP.
+- [x] Simulator.
+- [x] MQTT.
+- [x] Modbus TCP.
 - [ ] Modbus RTU.
 
 ## Future connector — KHÔNG BUILD V1
@@ -508,11 +528,11 @@ Connector mới sau này phải implement cùng interface và trả về normali
 
 V1 dùng database local trong stack RallyX.
 
-- [ ] PostgreSQL/TimescaleDB lưu metadata + telemetry/history theo plan chính.
-- [ ] History query theo Tag + time range.
+- [x] PostgreSQL/TimescaleDB lưu metadata + telemetry/history theo plan chính.
+- [x] History query theo Tag + time range.
 - [ ] Có retention config local.
 - [ ] Có downsampling/aggregation ở mức cần thiết nếu dữ liệu lớn.
-- [ ] Không tối ưu cho hyperscale/SaaS ở V1.
+- [x] Không tối ưu cho hyperscale/SaaS ở V1.
 - [ ] Có backup database local.
 - [ ] Có restore test.
 
@@ -522,23 +542,23 @@ V1 dùng database local trong stack RallyX.
 
 Không cần multi-tenant, nhưng app vẫn cần security cơ bản.
 
-- [ ] Login local.
-- [ ] Password hash an toàn.
-- [ ] Tối thiểu role `Admin` và `Viewer` nếu plan chính đã có user management.
-- [ ] Secrets không commit plaintext vào Git.
-- [ ] MQTT credentials không hard-code.
-- [ ] Audit/log thay đổi Connection/Device/Tag/Alarm Rule.
-- [ ] Validate input API.
-- [ ] Không expose DB port ra LAN mặc định nếu không cần.
+- [x] Login local.
+- [x] Password hash an toàn.
+- [x] Tối thiểu role `Admin` và `Viewer` nếu plan chính đã có user management.
+- [x] Secrets không commit plaintext vào Git.
+- [x] MQTT credentials không hard-code.
+- [x] Audit/log thay đổi Connection/Device/Tag/Alarm Rule.
+- [x] Validate input API.
+- [x] Không expose DB port ra LAN mặc định nếu không cần.
 
 ---
 
 # 15. Fault tolerance local
 
-- [ ] Một Device mất kết nối không ảnh hưởng Device khác.
-- [ ] Một Connection lỗi không crash toàn Core.
-- [ ] Tag lỗi chuyển `BAD` hoặc `STALE`.
-- [ ] Reconnect tự động.
+- [x] Một Device mất kết nối không ảnh hưởng Device khác.
+- [x] Một Connection lỗi không crash toàn Core.
+- [x] Tag lỗi chuyển `BAD` hoặc `STALE`.
+- [x] Reconnect tự động.
 - [ ] PostgreSQL/MQTT tạm unavailable phải có retry hợp lý.
 - [ ] App restart phải recover cấu hình.
 - [ ] Không mất runtime counter đã persist.
@@ -551,39 +571,39 @@ Agent phải mở `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md` và sửa 
 
 ## L1. Architecture milestone
 
-- [ ] Xóa yêu cầu Tenant.
-- [ ] Xóa multi-tenant isolation.
-- [ ] Xóa Edge Registry.
-- [ ] Xóa Cloud sync/SaaS requirement.
-- [ ] Giữ `Site → Area → Asset → Device → Tag`.
-- [ ] Bổ sung device extensibility principle.
-- [ ] Bổ sung connector interface.
-- [ ] Bổ sung normalized local telemetry contract.
+- [x] Xóa yêu cầu Tenant.
+- [x] Xóa multi-tenant isolation.
+- [x] Xóa Edge Registry.
+- [x] Xóa Cloud sync/SaaS requirement.
+- [x] Giữ `Site → Area → Asset → Device → Tag`.
+- [x] Bổ sung device extensibility principle.
+- [x] Bổ sung connector interface.
+- [x] Bổ sung normalized local telemetry contract.
 
 ## L2. Database milestone
 
-- [ ] Migration Site.
-- [ ] Migration Area.
-- [ ] Migration Asset.
-- [ ] Migration Connection.
-- [ ] Migration Device.
-- [ ] Migration Tag.
-- [ ] Migration DeviceTemplate.
-- [ ] Migration AlarmRule.
-- [ ] Migration DashboardConfig.
-- [ ] Time-series/hypertable cho telemetry.
-- [ ] Không tạo Tenant/EdgeNode tables ở V1.
+- [x] Migration Site.
+- [x] Migration Area.
+- [x] Migration Asset.
+- [x] Migration Connection.
+- [x] Migration Device.
+- [x] Migration Tag.
+- [x] Migration DeviceTemplate.
+- [x] Migration AlarmRule.
+- [x] Migration DashboardConfig.
+- [x] Time-series/hypertable cho telemetry.
+- [x] Không tạo Tenant/EdgeNode tables ở V1.
 
 ## L3. Backend/Core milestone
 
-- [ ] CRUD Connections.
-- [ ] CRUD Devices.
-- [ ] CRUD Tags.
-- [ ] CRUD Templates.
+- [x] CRUD Connections.
+- [x] CRUD Devices.
+- [x] CRUD Tags.
+- [x] CRUD Templates.
 - [ ] Generic Runtime Engine.
 - [ ] Generic Alarm Engine.
-- [ ] Live Data API/WebSocket.
-- [ ] History API.
+- [x] Live Data API/WebSocket.
+- [x] History API.
 
 ## L4. Connectivity milestone
 
@@ -611,25 +631,27 @@ Backend/API and Linux-container verification recorded in `docs/implementation-le
 
 ## L6. Import/export milestone
 
-- [ ] CSV preview.
-- [ ] CSV validation.
-- [ ] CSV commit.
-- [ ] CSV export.
+- [x] CSV preview.
+- [x] CSV validation.
+- [x] CSV commit.
+- [x] CSV export.
 
 ## L7. Local deployment milestone
 
-- [ ] Docker/Podman Compose.
+- [x] Docker/Podman Compose.
 - [ ] Offline image bundle.
 - [ ] `install.sh`.
 - [ ] `update.sh`.
 - [ ] `backup.sh`.
 - [ ] `restore.sh`.
 - [ ] Auto-start after reboot.
-- [ ] Health check.
+- [x] Health check.
 
 ---
 
 # 17. Acceptance test end-to-end bắt buộc
+
+Các kịch bản bên dưới giữ mở cho đến khi chạy đúng toàn bộ workflow được mô tả. Acceptance API/container đã pass được ghi riêng tại [bảng bằng chứng](docs/checklist-evidence.md); không thay thế các bước thao tác UI, hai thiết bị template sáu tags, CSV lên Live Data hoặc restart toàn stack.
 
 ## Test 1 — Add Device không sửa code
 
@@ -698,20 +720,20 @@ Backend/API and Linux-container verification recorded in `docs/implementation-le
 Chỉ coi Change Spec hoàn thành khi:
 
 - [ ] RallyX chạy như một app local/on-prem độc lập.
-- [ ] Không còn Tenant trong V1.
-- [ ] Không còn Edge Registry trong V1.
-- [ ] Không còn Cloud Sync/SaaS implementation trong V1.
-- [ ] Có Site → Area → Asset → Device → Tag.
-- [ ] Có CRUD Connection.
-- [ ] Có CRUD Device.
-- [ ] Có CRUD Tag.
-- [ ] Có Modbus TCP dynamic configuration.
+- [x] Không còn Tenant trong V1.
+- [x] Không còn Edge Registry trong V1.
+- [x] Không còn Cloud Sync/SaaS implementation trong V1.
+- [x] Có Site → Area → Asset → Device → Tag.
+- [x] Có CRUD Connection.
+- [x] Có CRUD Device.
+- [x] Có CRUD Tag.
+- [x] Có Modbus TCP dynamic configuration.
 - [ ] Có Modbus RTU dynamic configuration.
-- [ ] Có MQTT dynamic configuration.
-- [ ] Có Simulator.
+- [x] Có MQTT dynamic configuration.
+- [x] Có Simulator.
 - [ ] Thêm Device bằng supported protocol không cần sửa source.
-- [ ] Có Device Template.
-- [ ] Có CSV import/export.
+- [x] Có Device Template.
+- [x] Có CSV import/export.
 - [ ] Live Data tự nhận Tag mới.
 - [ ] History tự nhận Tag `store_history=true`.
 - [ ] Alarm generic theo Tag/Rule.
@@ -719,7 +741,7 @@ Chỉ coi Change Spec hoàn thành khi:
 - [ ] Dashboard không hard-code Device.
 - [ ] Test fault tolerance pass.
 - [ ] Backup/restore local pass.
-- [ ] Implementation Plan chính đã được cập nhật theo scope local.
+- [x] Implementation Plan chính đã được cập nhật theo scope local.
 
 ---
 
@@ -748,16 +770,22 @@ Chỉ coi Change Spec hoàn thành khi:
 - [x] Agent đã xóa Tenant khỏi V1 plan.
 - [x] Agent đã xóa Edge Registry khỏi V1 plan.
 - [x] Agent đã xóa Cloud/SaaS tasks khỏi V1 plan.
-- [ ] Agent đã cập nhật domain model local.
+- [x] Agent đã cập nhật domain model local.
 - [x] Agent đã cập nhật DB migrations plan.
-- [ ] Agent đã cập nhật MQTT/local telemetry contract.
+- [x] Agent đã cập nhật MQTT/local telemetry contract.
 - [x] Agent đã cập nhật Connection/Device/Tag scope.
 - [x] Agent đã cập nhật Device Template scope.
 - [x] Agent đã cập nhật CSV import/export scope.
 - [x] Agent đã cập nhật Web configuration flow.
-- [ ] Agent đã thêm acceptance tests.
+- [x] Agent đã thêm acceptance tests.
 - [ ] Agent đã xác nhận Core/Web không hard-code use case.
-- [ ] Agent bắt đầu implementation theo plan mới.
+- [x] Agent bắt đầu implementation theo plan mới.
+
+## Progress Log
+
+| Ngày | Nhóm | Kết quả / bằng chứng |
+|---|---|---|
+| 2026-10-23 | Đồng bộ checkbox với implementation | Bổ sung 158 mục đã xác minh ngoài các mục có sẵn; đối chiếu code/test của `3896305`, kết quả backend DB/broker và connectivity Docker 23/23. UI, phần cứng RTU, restart/offline/restore và Definition of Done tổng thể vẫn mở. Xem `docs/checklist-evidence.md`. |
 
 ---
 
