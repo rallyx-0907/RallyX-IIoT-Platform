@@ -30,6 +30,7 @@ switch (task) {
   case 'logs': run('docker', ['compose', 'logs', '-f', '--tail=100']); break;
   case 'test':
     run(process.execPath, ['--test', 'connectors/node-red/simulator.test.mjs']);
+    run(process.execPath, ['--test', 'packages/contracts/*.test.mjs', 'apps/connectivity/src/*.test.mjs']);
     run(go, ['test', './...'], core);
     runNpm(['test', '--', '--run'], web);
     break;

@@ -1032,12 +1032,20 @@ An agent must not declare the MVP complete until all gates below are checked.
 
 # 10. Progress Log
 
+Connectivity foundation continuation (local amendment):
+
+- [x] Shared JavaScript device topic/payload helpers and typed scalar/register decoder verified with Node tests.
+- [x] Device worker reconciliation, isolated failure/recovery, disabled-worker shutdown and in-flight removal verified with Node tests.
+- [x] Configuration-driven Simulator read adapter verified; missing readings are rejected and scaling remains in Core.
+- [ ] Runnable connectivity service, MQTT/Modbus adapters, Test Connection/Test Read and container acceptance.
+
 Add one line after each completed task group. Keep notes short and factual.
 
 | Date | Agent | Milestone / Task | Status | Verification / Notes |
 |---|---|---|---|---|
 | 2026-10-23 | — | Plan created | ✅ | Architecture converted to agent-executable checklist. |
 | 2026-10-23 | Codex | Local extensibility amendment | In progress | Local change spec read in full; hierarchy, telemetry and active V1 scope updated. Existing baseline unit/integration tests and Web build pass; migration to amended model is required before declaring the changed milestones complete. |
+| 2026-10-23 | Codex | Connectivity worker foundation | In progress | Seven Node connectivity/contract tests pass. Full real TimescaleDB/Mosquitto backend suite passes, including service-token credential boundary and CSV/dashboard/archive API regression. Runtime service and remaining adapters are pending; development images remain baseline. |
 | | | | | |
 | | | | | |
 | | | | | |
