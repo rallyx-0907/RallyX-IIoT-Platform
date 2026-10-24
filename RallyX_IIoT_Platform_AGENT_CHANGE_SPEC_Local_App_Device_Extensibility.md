@@ -783,6 +783,8 @@ Chỉ coi Change Spec hoàn thành khi:
 
 ## Progress Log
 
+2026-10-24: Connections UI source added with administrator create/edit/disable/archive, read-only non-admin access, protocol fields, status timestamps and Test Connection feedback. Component tests verify payloads, write-only credential retention, errors and archive confirmation. Full UI rollout/acceptance remains unchecked until the amended device/producer stack is coordinated; see `docs/connections-ui.md`.
+
 | Ngày | Nhóm | Kết quả / bằng chứng |
 |---|---|---|
 | 2026-10-23 | Đồng bộ checkbox với implementation | Bổ sung 158 mục đã xác minh ngoài các mục có sẵn; đối chiếu code/test của `3896305`, kết quả backend DB/broker và connectivity Docker 23/23. UI, phần cứng RTU, restart/offline/restore và Definition of Done tổng thể vẫn mở. Xem `docs/checklist-evidence.md`. |

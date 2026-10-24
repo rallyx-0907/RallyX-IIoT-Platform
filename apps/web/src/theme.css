@@ -181,6 +181,7 @@ input[type="checkbox"] { min-height: auto; accent-color: var(--green); }
 .auth-panel input { min-height: 44px; font-size: 13px; }
 .auth-panel .primary { width: 100%; font-size: 12px; padding: 13px; margin-top: 5px; }
 .auth-footnote { color: #9ba8b6; font-size: 9px; text-align: center; margin-top: 28px; }
+.connection-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .loading-screen { min-height: 100vh; display: grid; place-items: center; color: #6d8295; font-size: 14px; }
 .loading-panel { padding: 70px; color: #8b9eae; text-align: center; font-size: 13px; }
 @media (min-width: 1600px) { section { padding: 40px 50px; } .metrics article { padding: 26px; } .asset-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } }

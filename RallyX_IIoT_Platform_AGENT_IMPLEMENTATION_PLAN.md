@@ -1044,6 +1044,8 @@ An agent must not declare the MVP complete until all gates below are checked.
 
 # 10. Progress Log
 
+2026-10-24 continuation: dynamic Connections UI now implements create/edit/disable/archive with history retention, protocol forms and Test Connection. Component verification covers request payloads, credential retention, diagnostic/error feedback, viewer restrictions and confirmation. Coordinated browser acceptance and remaining Device/Template/Tag/CSV/dashboard workflows remain open. The baseline UI login is verified from Windows via the WSL address; no amended application image was deployed. See `docs/connections-ui.md` and the implementation ledger for exact verification.
+
 Connectivity foundation continuation (local amendment):
 
 - [x] Shared JavaScript device topic/payload helpers and typed scalar/register decoder verified with Node tests.

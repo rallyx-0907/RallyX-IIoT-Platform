@@ -8,6 +8,7 @@ import { History } from './pages/History';
 import { Alarms } from './pages/Alarms';
 import { Configuration } from './pages/Configuration';
 import { System } from './pages/System';
+import { Connections } from './pages/Connections';
 import { TagsTable } from './components/DataDisplay';
 import type { User } from './types/platform';
 
@@ -61,7 +62,8 @@ export function App() {
           {current[0] === 'history' && <History data={data} />}
           {current[0] === 'alarms' && <Alarms data={data} user={user} onAck={acknowledge} />}
           {(current[0] === 'configuration' || current[0] === 'rules') && <Configuration mode={current[0]} data={data} user={user} onRefresh={refresh} />}
-          {(current[0] === 'system' || current[0] === 'connections') && <System mode={current[0]} user={user} />}
+          {current[0] === 'connections' && <Connections user={user} />}
+          {current[0] === 'system' && <System mode={current[0]} user={user} />}
         </>}
         <div className="page-foot">RallyX IIoT Platform <span>Local data. Operational clarity.</span></div>
       </section>
