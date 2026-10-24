@@ -274,7 +274,7 @@ Tracking note: backup/offline Make target declarations exist, but their implemen
   - [x] `make logs`
   - [x] `make test`
   - [x] `make e2e`
-  - [ ] `make backup`
+  - [x] `make backup`
   - [ ] `make package-offline`
 - [ ] Create `docs/architecture.md` from Sections 1–4 of this plan.
 - [x] Create `docs/mqtt-contract.md` containing the exact MQTT contract above.
@@ -765,21 +765,21 @@ Tracking note: baseline screens and generic error/empty-state tests exist. Devic
 
 ### Tasks
 
-- [ ] Implement `scripts/backup.sh`.
-- [ ] Implement `scripts/restore.sh`.
-- [ ] Include integrity/version metadata in backup bundle.
-- [ ] Restore to a clean second installation in test.
+- [x] Implement `scripts/backup.sh`.
+- [x] Implement `scripts/restore.sh`.
+- [x] Include integrity/version metadata in backup bundle.
+- [x] Restore to a clean second installation in test.
 - [ ] Implement versioned update script.
 - [ ] Run DB migrations during update.
 - [ ] Preserve previous package/image set for rollback.
-- [ ] Document recovery procedure.
+- [x] Document recovery procedure.
 
 ### Required tests
 
-- [ ] Backup completes while system is in a supported operating state.
-- [ ] Restored system retains asset config and required history.
+- [x] Backup completes while system is in a supported operating state.
+- [x] Restored system retains asset config and required history.
 - [ ] Update failure can roll back to previous version.
-- [ ] Node-RED flows survive backup/restore.
+- [x] Node-RED flows survive backup/restore.
 
 ### Definition of Done
 
@@ -1043,6 +1043,8 @@ An agent must not declare the MVP complete until all gates below are checked.
 ---
 
 # 10. Progress Log
+
+2026-10-24 backup/restore: secure versioned/checksummed bundles and explicit-root confirmed restore verified on two independent copied installations. Key mismatch and tampered payloads reject before effects; asset metadata, Timescale telemetry and Node-RED volume/flows recover while target DB credentials/source config remain intact. Timescale pre/post hooks and strict restore errors are enforced. Update/rollback/offline/physical-host gates remain open; see `docs/backup-restore.md`.
 
 2026-10-24 verified continuation: dynamic configuration UI and device producer, Chromium 9/9, API zero-hardware scenario, real DB/broker integration and separate full-stack restart retaining the same open runtime session/config/dashboard/history. Existing-demo simulator defaults now migrate without overwriting configured metadata. A pre-upgrade snapshot restores into a separate database. No physical RTU/offline/release completion is claimed. See `docs/ui-configuration.md`.
 

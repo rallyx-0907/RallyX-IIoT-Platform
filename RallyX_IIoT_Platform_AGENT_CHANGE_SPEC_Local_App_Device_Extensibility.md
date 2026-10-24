@@ -533,8 +533,8 @@ V1 dùng database local trong stack RallyX.
 - [ ] Có retention config local.
 - [ ] Có downsampling/aggregation ở mức cần thiết nếu dữ liệu lớn.
 - [x] Không tối ưu cho hyperscale/SaaS ở V1.
-- [ ] Có backup database local.
-- [ ] Có restore test.
+- [x] Có backup database local.
+- [x] Có restore test.
 
 ---
 
@@ -642,8 +642,8 @@ Backend/API and Linux-container verification recorded in `docs/implementation-le
 - [ ] Offline image bundle.
 - [ ] `install.sh`.
 - [ ] `update.sh`.
-- [ ] `backup.sh`.
-- [ ] `restore.sh`.
+- [x] `backup.sh`.
+- [x] `restore.sh`.
 - [ ] Auto-start after reboot.
 - [x] Health check.
 
@@ -740,7 +740,7 @@ Chỉ coi Change Spec hoàn thành khi:
 - [ ] Runtime generic theo Tag/Rule.
 - [ ] Dashboard không hard-code Device.
 - [ ] Test fault tolerance pass.
-- [ ] Backup/restore local pass.
+- [x] Backup/restore local pass.
 - [x] Implementation Plan chính đã được cập nhật theo scope local.
 
 ---
@@ -782,6 +782,8 @@ Chỉ coi Change Spec hoàn thành khi:
 - [x] Agent bắt đầu implementation theo plan mới.
 
 ## Progress Log
+
+2026-10-24 backup/restore: two separate deployment roots pass real Timescale history/config/Node-RED recovery, mismatched-key/tamper rejection and source-root isolation. Only this recovery slice is complete; updates/rollback/offline and whole V1 release gates remain open. See `docs/backup-restore.md`.
 
 2026-10-24: Dynamic UI + device producer verified in separate preview: Chromium 9/9, zero-hardware API E2E, real DB/broker backend suite and full-stack restart persistence pass. Source-level UI items are checked; physical RTU, detailed Rule Engine, offline/recovery/release gates remain scoped separately. See `docs/ui-configuration.md` and `docs/implementation-ledger.md`.
 

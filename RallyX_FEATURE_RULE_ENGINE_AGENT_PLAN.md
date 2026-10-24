@@ -458,19 +458,19 @@ type EvaluationInput struct { ... }
 type EvaluationResult struct { ... }
 ```
 
-- [ ] Add supported enums/constants.
-- [ ] Implement rule validation.
-- [ ] Validate Tag datatype compatibility before enable/save.
-- [ ] Reject negative delays/hysteresis.
-- [ ] Reject enabled rule with zero conditions.
+- [x] Add supported enums/constants.
+- [x] Implement rule validation.
+- [x] Validate Tag datatype compatibility before enable/save.
+- [x] Reject negative delays/hysteresis.
+- [x] Reject enabled rule with zero conditions.
 
 ### Tests
 
-- [ ] Valid numeric High rule passes validation.
-- [ ] High rule against boolean Tag fails validation.
-- [ ] Boolean condition against numeric Tag fails validation.
-- [ ] Negative hysteresis fails validation.
-- [ ] `stale_for=0` fails validation.
+- [x] Valid numeric High rule passes validation.
+- [x] High rule against boolean Tag fails validation.
+- [x] Boolean condition against numeric Tag fails validation.
+- [x] Negative hysteresis fails validation.
+- [x] `stale_for=0` fails validation.
 
 ## Task 6B — Primitive condition evaluator
 
@@ -480,22 +480,22 @@ Expected pure function equivalent:
 EvaluateCondition(condition Condition, tagState TagState, alarmActive bool) (ConditionResult, error)
 ```
 
-- [ ] Implement numeric comparison.
-- [ ] Implement boolean comparison.
-- [ ] Implement equality/inequality.
-- [ ] Implement stale comparison.
-- [ ] Implement quality behavior.
-- [ ] Implement hysteresis clear semantics using `alarmActive`/phase context.
+- [x] Implement numeric comparison.
+- [x] Implement boolean comparison.
+- [x] Implement equality/inequality.
+- [x] Implement stale comparison.
+- [x] Implement quality behavior.
+- [x] Implement hysteresis clear semantics using `alarmActive`/phase context.
 
 ### Tests
 
-- [ ] `71 > 70` true.
-- [ ] `70 > 70` false.
-- [ ] Active `gt 70` with hysteresis 2 does not clear at 69.
-- [ ] Active `gt 70` with hysteresis 2 clears at 68.
-- [ ] Boolean true activates `is_true`.
-- [ ] Bad-quality input does not activate numeric rule.
-- [ ] Missing value is not treated as zero.
+- [x] `71 > 70` true.
+- [x] `70 > 70` false.
+- [x] Active `gt 70` with hysteresis 2 does not clear at 69.
+- [x] Active `gt 70` with hysteresis 2 clears at 68.
+- [x] Boolean true activates `is_true`.
+- [x] Bad-quality input does not activate numeric rule.
+- [x] Missing value is not treated as zero.
 
 ## Task 6C — Aggregate evaluator
 
@@ -505,16 +505,16 @@ Expected pure function equivalent:
 EvaluateRule(rule Rule, states map[TagID]TagState, phase EvaluationPhase) (EvaluationResult, error)
 ```
 
-- [ ] Implement `all` aggregation.
-- [ ] Implement `any` aggregation.
-- [ ] Return per-condition diagnostic results for Rule Test UI.
-- [ ] Return the values/timestamps used to create alarm activation snapshot.
+- [x] Implement `all` aggregation.
+- [x] Implement `any` aggregation.
+- [x] Return per-condition diagnostic results for Rule Test UI.
+- [x] Return the values/timestamps used to create alarm activation snapshot.
 
 ### Tests
 
-- [ ] ALL only true when all conditions true.
-- [ ] ANY true when one condition true.
-- [ ] Cross-device/cross-asset Tag references evaluate without device-specific branching.
+- [x] ALL only true when all conditions true.
+- [x] ANY true when one condition true.
+- [x] Cross-device/cross-asset Tag references evaluate without device-specific branching.
 
 ---
 
