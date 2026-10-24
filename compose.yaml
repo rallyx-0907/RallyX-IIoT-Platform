@@ -20,7 +20,7 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -45,15 +45,17 @@ services:
     environment:
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
       NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET:?Set Node-RED credential secret}
-      SIMULATOR_ENABLED: ${SIMULATOR_ENABLED:-true}
-      FLOWS: /opt/rallyx/simulator.json
+      SIMULATOR_ENABLED: ${SIMULATOR_ENABLED:-false}
+      FLOWS: /opt/rallyx/device-simulator.json
       SIMULATOR_SITE_ID: ${SIMULATOR_SITE_ID:-demo-site}
       SIMULATOR_MOTOR_ASSET_ID: ${SIMULATOR_MOTOR_ASSET_ID:-demo-motor}
       SIMULATOR_SENSOR_ASSET_ID: ${SIMULATOR_SENSOR_ASSET_ID:-demo-sensor}
+      SIMULATOR_MOTOR_DEVICE_ID: ${SIMULATOR_MOTOR_DEVICE_ID:-demo-motor-device}
+      SIMULATOR_SENSOR_DEVICE_ID: ${SIMULATOR_SENSOR_DEVICE_ID:-demo-sensor-device}
     volumes:
       - node-red-data:/data
       - ./connectors/node-red/settings.js:/data/settings.js:ro
-      - ./connectors/node-red/flows/simulator.json:/opt/rallyx/simulator.json:ro
+      - ./connectors/node-red/flows/device-simulator.json:/opt/rallyx/device-simulator.json:ro
     depends_on:
       broker:
         condition: service_healthy

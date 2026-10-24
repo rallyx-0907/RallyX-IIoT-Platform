@@ -9,7 +9,10 @@ import { Alarms } from './pages/Alarms';
 import { Configuration } from './pages/Configuration';
 import { System } from './pages/System';
 import { Connections } from './pages/Connections';
-import { TagsTable } from './components/DataDisplay';
+import { Devices } from './pages/Devices';
+import { Templates } from './pages/Templates';
+import { Tags } from './pages/Tags';
+import { LiveData } from './pages/LiveData';
 import type { User } from './types/platform';
 
 const pages = [
@@ -19,6 +22,8 @@ const pages = [
   ['history', '◷', 'History & Trends', 'Explore samples, transitions, and runtime sessions.'],
   ['alarms', '△', 'Alarms', 'Conditions that need your attention.'],
   ['connections', '⤧', 'Connections', 'Follow the path from field data to your platform.'],
+  ['devices', '◇', 'Devices', 'Configure devices and their connection or template.'],
+  ['templates', '▤', 'Templates', 'Reusable device definitions and tag mappings.'],
   ['configuration', '⚙', 'Tag Configuration', 'Define the signals your platform monitors.'],
   ['rules', '≡', 'Rules', 'Configure fault, threshold, and communication alarms.'],
   ['system', '⊞', 'System', 'Installation health, diagnostics, and access.'],
@@ -29,7 +34,6 @@ export function App() {
   const [startupError, setStartupError] = useState('');
   const [page, setPage] = useState(location.hash.slice(1) || 'overview');
   const [selected, setSelected] = useState('');
-  const [filter, setFilter] = useState('');
   const [actionError, setActionError] = useState('');
   const platform = usePlatform(user);
   useEffect(() => {
@@ -58,11 +62,14 @@ export function App() {
         {loading ? <div className="loading-panel" role="status">Loading platform data…</div> : <>
           {current[0] === 'overview' && <Overview data={data} user={user} offline={connection === 'offline'} onAsset={id => { setSelected(id); navigate('assets'); }} onAlarms={() => navigate('alarms')} onAck={acknowledge} />}
           {current[0] === 'assets' && <Assets data={data} selected={selected} onSelect={setSelected} offline={connection === 'offline'} user={user} onRefresh={refresh} />}
-          {current[0] === 'live' && <article><div className="panel-heading"><h2>Field telemetry</h2><select aria-label="Filter by asset" value={filter} onChange={event => setFilter(event.target.value)}><option value="">All assets</option>{data.assets.map(asset => <option key={asset.id} value={asset.id}>{asset.name}</option>)}</select></div><TagsTable tags={data.tags.filter(tag => !filter || tag.asset_id === filter)} offline={connection === 'offline'} /></article>}
+          {current[0] === 'live' && <LiveData data={data} offline={connection === 'offline'} />}
           {current[0] === 'history' && <History data={data} />}
           {current[0] === 'alarms' && <Alarms data={data} user={user} onAck={acknowledge} />}
-          {(current[0] === 'configuration' || current[0] === 'rules') && <Configuration mode={current[0]} data={data} user={user} onRefresh={refresh} />}
+          {current[0] === 'configuration' && <Tags user={user} onRefresh={refresh} />}
+          {current[0] === 'rules' && <Configuration mode="rules" data={data} user={user} onRefresh={refresh} />}
           {current[0] === 'connections' && <Connections user={user} />}
+          {current[0] === 'devices' && <Devices user={user} onRefresh={refresh} />}
+          {current[0] === 'templates' && <Templates user={user} />}
           {current[0] === 'system' && <System mode={current[0]} user={user} />}
         </>}
         <div className="page-foot">RallyX IIoT Platform <span>Local data. Operational clarity.</span></div>

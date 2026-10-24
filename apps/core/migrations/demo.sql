@@ -12,7 +12,9 @@ INSERT INTO tags(id,asset_id,device_id,key,name,datatype,data_type,source_type,u
   ('demo-motor-run','demo-motor','demo-motor-device','run','Run','boolean','bool','simulator','','run','{"simulator_value":false}'),
   ('demo-motor-fault','demo-motor','demo-motor-device','fault','Fault','boolean','bool','simulator','','fault','{"simulator_value":false}'),
   ('demo-motor-current','demo-motor','demo-motor-device','current','Current','number','float32','simulator','A','','{"simulator_value":0}'),
-  ('demo-sensor-value','demo-sensor','demo-sensor-device','value','Value','number','float32','simulator','°C','','{"simulator_value":25}') ON CONFLICT DO NOTHING;
+  ('demo-sensor-value','demo-sensor','demo-sensor-device','value','Value','number','float32','simulator','°C','','{"simulator_value":25}')
+ON CONFLICT(id) DO UPDATE SET metadata=tags.metadata || EXCLUDED.metadata
+WHERE tags.source_type='simulator' AND NOT (tags.metadata ? 'simulator_value') AND tags.deleted_at IS NULL;
 INSERT INTO rules(id,tag_id,name,type,threshold,severity) VALUES
   ('demo-fault','demo-motor-fault','Motor fault','fault',NULL,'critical'),
   ('demo-current-high','demo-motor-current','Motor current high','high',10,'warning'),

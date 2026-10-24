@@ -3,16 +3,16 @@ import { request, errorMessage } from '../api/client';
 import { duration, Empty, EventsTable, timeLabel } from '../components/DataDisplay';
 import type { EventRecord, PlatformData, RuntimeSession, Sample } from '../types/platform';
 
-function localDate(date: Date) { return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
-function Trend({ samples }: { samples: Sample[] }) {
-  const numeric = samples.filter(sample => sample.quality === 'good' && typeof sample.value === 'number');
+function localDate(date: Date) { return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19); }
+export function Trend({ samples }: { samples: Sample[] }) {
+  const numeric = samples.filter(sample => sample.quality.toUpperCase() === 'GOOD' && typeof sample.value === 'number');
   if (!numeric.length) return <Empty title="No good-quality numeric samples" detail="Choose an analog tag and a time range with recorded data." />;
   const numbers = numeric.map(sample => Number(sample.value));
   const low = Math.min(...numbers), high = Math.max(...numbers);
   const start = Date.parse(samples[0].ts), end = Date.parse(samples[samples.length - 1].ts);
   const segments: string[][] = [[]];
   samples.forEach(sample => {
-    if (sample.quality !== 'good' || typeof sample.value !== 'number') { if (segments[segments.length - 1].length) segments.push([]); return; }
+    if (sample.quality.toUpperCase() !== 'GOOD' || typeof sample.value !== 'number') { if (segments[segments.length - 1].length) segments.push([]); return; }
     const x = 45 + (Date.parse(sample.ts) - start) / (end - start || 1) * 570;
     const y = 170 - (sample.value - low) / (high - low || 1) * 135;
     segments[segments.length - 1].push(`${x},${y}`);
@@ -22,7 +22,7 @@ function Trend({ samples }: { samples: Sample[] }) {
 
 export function History({ data }: { data: PlatformData }) {
   const [assetId, setAssetId] = useState(data.assets[0]?.id || '');
-  const tags = data.tags.filter(tag => tag.asset_id === assetId);
+  const tags = data.tags.filter(tag => tag.asset_id === assetId && tag.store_history !== false);
   const [tagId, setTagId] = useState('');
   const selectedTag = tags.find(tag => tag.id === tagId) || tags[0];
   const [from, setFrom] = useState(localDate(new Date(Date.now() - 3600000)));
@@ -39,6 +39,7 @@ export function History({ data }: { data: PlatformData }) {
     const controller = new AbortController();
     async function load() {
       setBusy(true); setError('');
+      setSamples([]); setEvents([]); setSessions([]);
       try {
         if (!from || !to || new Date(to) <= new Date(from)) throw new Error('Choose a valid start and end time.');
         const range = new URLSearchParams({ from: new Date(from).toISOString(), to: new Date(to).toISOString(), limit: '2000' });
@@ -59,7 +60,7 @@ export function History({ data }: { data: PlatformData }) {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = `rallyx-history-${selectedTag?.id || 'samples'}.csv`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  return <><article className="filters"><label>Asset<select value={assetId} onChange={event => setAssetId(event.target.value)}>{data.assets.map(asset => <option key={asset.id} value={asset.id}>{asset.name}</option>)}</select></label><label>Tag<select value={selectedTag?.id || ''} onChange={event => setTagId(event.target.value)}>{tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</select></label><label>From<input type="datetime-local" value={from} onChange={event => setFrom(event.target.value)} /></label><label>To<input type="datetime-local" value={to} onChange={event => setTo(event.target.value)} /></label><label>Resolution<select value={bucket} onChange={event => setBucket(event.target.value)}><option value="">Raw samples</option><option>1 minute</option><option>1 hour</option><option>1 day</option></select></label><button className="secondary" disabled={busy} onClick={() => setRevision(revision + 1)}>Apply</button></article>{error && <p className="error" role="alert">{error}</p>}
+  return <><article className="filters"><label>Asset<select value={assetId} onChange={event => setAssetId(event.target.value)}>{data.assets.map(asset => <option key={asset.id} value={asset.id}>{asset.name}</option>)}</select></label><label>Tag<select value={selectedTag?.id || ''} onChange={event => setTagId(event.target.value)}>{tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</select></label><label>From<input type="datetime-local" step="1" value={from} onChange={event => setFrom(event.target.value)} /></label><label>To<input type="datetime-local" step="1" value={to} onChange={event => setTo(event.target.value)} /></label><label>Resolution<select value={bucket} onChange={event => setBucket(event.target.value)}><option value="">Raw samples</option><option>1 minute</option><option>1 hour</option><option>1 day</option></select></label><button className="secondary" disabled={busy} onClick={() => setRevision(revision + 1)}>Apply</button></article>{error && <p className="error" role="alert">{error}</p>}
     <article className="spaced"><div className="panel-heading"><div><h2>{selectedTag?.name || 'Analog trend'}</h2><p className="muted">{busy ? 'Loading history…' : `${samples.length} samples · ${selectedTag?.unit || 'no unit'} · browser timezone`}</p></div><button className="secondary" onClick={exportCsv} disabled={!samples.length || busy}>↓ Export CSV</button></div><Trend samples={samples} /><p className="muted fineprint">Results are limited to 2,000 rows. Narrow the time range or select an aggregate resolution for longer periods. Bad-quality samples create gaps.</p></article>
     <div className="dashboard-bottom"><article><h2>Event timeline</h2><EventsTable events={events} /></article><article><h2>Runtime sessions</h2>{sessions.length ? <div className="table-wrap"><table><thead><tr><th>Type</th><th>Started</th><th>Duration</th></tr></thead><tbody>{sessions.map(session => <tr key={session.id}><td>{session.kind}<small>{session.ended_at ? 'Closed' : 'Open'}</small></td><td>{timeLabel(session.started_at)}</td><td>{duration(session.duration_seconds)}</td></tr>)}</tbody></table></div> : <Empty title="No runtime sessions in this period" />}</article></div></>;
 }

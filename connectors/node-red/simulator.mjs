@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { deviceTopic, telemetry } from '../../packages/contracts/telemetry.mjs';
 
 export function updateControls(state, input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Controls must be an object');
@@ -15,9 +16,8 @@ export function updateControls(state, input) {
 
 export function telemetryMessages(config, state, now) {
   if (!state.enabled) return [];
-  for (const value of Object.values(config)) if (!/^[a-zA-Z0-9_-]{1,64}$/.test(value)) throw new Error('Invalid simulator asset/site configuration');
-  const make = (asset, tags) => ({ topic: `rallyx/${config.siteId}/${asset}/telemetry`, payload: JSON.stringify({ ts: now.toISOString(), tags, quality: 'good' }), qos: 1, retain: false });
-  return [make(config.motorId, { run: state.run, fault: state.fault, current: state.current }), make(config.sensorId, { value: state.value })];
+  const make = (id, asset_id, values) => ({ topic: deviceTopic(id), payload: JSON.stringify(telemetry({ id, asset_id }, values, now)), qos: 1, retain: false });
+  return [make(config.motorDeviceId, config.motorId, { run: state.run, fault: state.fault, current: state.current }), make(config.sensorDeviceId, config.sensorId, { value: state.value })];
 }
 
 export function generateFlow() {
@@ -27,7 +27,7 @@ export function generateFlow() {
     { id: tab, type: 'tab', label: 'RallyX zero-hardware simulator' },
     { id: 'rallyx-mqtt-config', type: 'mqtt-broker', name: 'Internal Mosquitto', broker: 'broker', port: '1883', clientid: 'rallyx-simulator', autoConnect: true, usetls: false, protocolVersion: '4', keepalive: '30', cleansession: true },
     { id: 'tick', type: 'inject', z: tab, name: 'Fresh snapshot every 2 seconds', props: [{ p: 'payload' }], repeat: '2', once: true, onceDelay: '3', wires: [['publish']] },
-    { id: 'publish', type: 'function', z: tab, name: 'Normalize simulator telemetry', func: `${telemetryMessages.toString()}\n${initial}\nif (env.get('SIMULATOR_ENABLED') !== 'true') return null;\nreturn [telemetryMessages({siteId:env.get('SIMULATOR_SITE_ID'),motorId:env.get('SIMULATOR_MOTOR_ASSET_ID'),sensorId:env.get('SIMULATOR_SENSOR_ASSET_ID')},state,new Date())];`, outputs: 1, wires: [['mqtt-out']] },
+    { id: 'publish', type: 'function', z: tab, name: 'Normalize simulator telemetry', func: `${deviceTopic.toString()}\n${telemetry.toString()}\n${telemetryMessages.toString()}\n${initial}\nif (env.get('SIMULATOR_ENABLED') !== 'true') return null;\nreturn [telemetryMessages({motorId:env.get('SIMULATOR_MOTOR_ASSET_ID'),motorDeviceId:env.get('SIMULATOR_MOTOR_DEVICE_ID'),sensorId:env.get('SIMULATOR_SENSOR_ASSET_ID'),sensorDeviceId:env.get('SIMULATOR_SENSOR_DEVICE_ID')},state,new Date())];`, outputs: 1, wires: [['mqtt-out']] },
     { id: 'mqtt-out', type: 'mqtt out', z: tab, name: 'Production telemetry contract', topic: '', qos: '1', retain: 'false', broker: 'rallyx-mqtt-config', wires: [] },
     { id: 'mqtt-status', type: 'status', z: tab, name: 'Broker connectivity', scope: ['mqtt-out'], wires: [['mqtt-health']] },
     { id: 'mqtt-health', type: 'function', z: tab, name: 'Track broker health', func: "flow.set('mqtt_healthy',msg.status.fill==='green'); return null;", outputs: 1, wires: [] },
@@ -45,5 +45,5 @@ export function generateFlow() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  writeFileSync(fileURLToPath(new URL('./flows/simulator.json', import.meta.url)), JSON.stringify(generateFlow(), null, 2) + '\n');
+  writeFileSync(fileURLToPath(new URL('./flows/device-simulator.json', import.meta.url)), JSON.stringify(generateFlow(), null, 2) + '\n');
 }

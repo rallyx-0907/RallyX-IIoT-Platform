@@ -513,7 +513,7 @@ For a configured `fault` boolean tag:
 - [x] Run transition produces exactly one start event.
 - [x] Stop transition closes the correct runtime session.
 - [x] Repeated identical values do not create duplicate events.
-- [ ] Core restart does not lose or duplicate an open runtime session.
+- [x] Core restart does not lose or duplicate an open runtime session.
 - [x] Fault alarm activates, can be acknowledged, and clears correctly.
 - [ ] Threshold alarm follows configured hysteresis/debounce if implemented.
 - [x] Stale communication creates a visible alarm and clears after valid telemetry resumes.
@@ -619,56 +619,56 @@ Tracking note: baseline screens and generic error/empty-state tests exist. Devic
 
 - [ ] Site health
 - [ ] Asset RUN/STOP/FAULT cards
-- [ ] Active alarms
+- [x] Active alarms
 - [ ] Runtime today
 - [ ] Recent events
 
 #### Assets
 
-- [ ] Site → Area → Asset → Device → Tag tree
+- [x] Site → Area → Asset → Device → Tag tree
 - [ ] Asset metadata
-- [ ] Current tag values
-- [ ] Derived runtime/start/fault metrics
+- [x] Current tag values
+- [x] Derived runtime/start/fault metrics
 
 #### Live Data
 
-- [ ] Tag
-- [ ] Value
-- [ ] Unit
-- [ ] Quality
-- [ ] Timestamp
-- [ ] Filter by asset/device
+- [x] Tag
+- [x] Value
+- [x] Unit
+- [x] Quality
+- [x] Timestamp
+- [x] Filter by asset/device
 
 #### History & Trends
 
-- [ ] Time range selector
-- [ ] Analog trend
-- [ ] Event timeline
-- [ ] Runtime sessions
-- [ ] CSV export
+- [x] Time range selector
+- [x] Analog trend
+- [x] Event timeline
+- [x] Runtime sessions
+- [x] CSV export
 
 #### Alarms
 
-- [ ] Active alarms
-- [ ] Alarm history
-- [ ] Severity
-- [ ] Acknowledge action
-- [ ] Filter by asset
+- [x] Active alarms
+- [x] Alarm history
+- [x] Severity
+- [x] Acknowledge action
+- [x] Filter by asset
 
 #### Connections
 
 - [ ] MQTT health
 - [ ] Core/DB health
 - [ ] Node-RED/connector health summary
-- [ ] Connection test feedback
+- [x] Connection test feedback
 
 #### Tag Configuration
 
-- [ ] Address/topic mapping
-- [ ] Datatype
-- [ ] Scale
-- [ ] Unit
-- [ ] Sample policy
+- [x] Address/topic mapping
+- [x] Datatype
+- [x] Scale
+- [x] Unit
+- [x] Sample policy
 
 #### System
 
@@ -689,7 +689,7 @@ Tracking note: baseline screens and generic error/empty-state tests exist. Devic
 - [ ] Frontend unit/component tests for status and alarm states.
 - [x] API error state is visible to user.
 - [x] Empty data state does not break page.
-- [ ] Browser refresh preserves correct server-derived state.
+- [x] Browser refresh preserves correct server-derived state.
 - [x] Asset names come from API, not hard-coded demo constants.
 
 ### Definition of Done
@@ -1043,6 +1043,8 @@ An agent must not declare the MVP complete until all gates below are checked.
 ---
 
 # 10. Progress Log
+
+2026-10-24 verified continuation: dynamic configuration UI and device producer, Chromium 9/9, API zero-hardware scenario, real DB/broker integration and separate full-stack restart retaining the same open runtime session/config/dashboard/history. Existing-demo simulator defaults now migrate without overwriting configured metadata. A pre-upgrade snapshot restores into a separate database. No physical RTU/offline/release completion is claimed. See `docs/ui-configuration.md`.
 
 2026-10-24 continuation: dynamic Connections UI now implements create/edit/disable/archive with history retention, protocol forms and Test Connection. Component verification covers request payloads, credential retention, diagnostic/error feedback, viewer restrictions and confirmation. Coordinated browser acceptance and remaining Device/Template/Tag/CSV/dashboard workflows remain open. The baseline UI login is verified from Windows via the WSL address; no amended application image was deployed. See `docs/connections-ui.md` and the implementation ledger for exact verification.
 

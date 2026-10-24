@@ -3,12 +3,12 @@ import type { Alarm, EventRecord, Tag } from '../types/platform';
 export const timeLabel = (value?: string | null) => value ? new Date(value).toLocaleString() : 'Never received';
 export const duration = (seconds: number) => `${Math.floor(Math.max(0, seconds) / 3600)}h ${Math.floor(Math.max(0, seconds) % 3600 / 60)}m`;
 export function Empty({ title, detail }: { title: string; detail?: string }) { return <div className="empty"><span>◇</span><h3>{title}</h3>{detail && <p>{detail}</p>}</div>; }
-export function QualityBadge({ quality }: { quality: string }) { return <span className={`badge badge-${quality}`}>{quality.toUpperCase()}</span>; }
+export function QualityBadge({ quality }: { quality: string }) { return <span className={`badge badge-${quality.toLowerCase()}`}>{quality.toUpperCase()}</span>; }
 export function TagsTable({ tags, offline = false }: { tags: Tag[]; offline?: boolean }) {
   if (!tags.length) return <Empty title="No tags configured" detail="Add tags to an asset to begin receiving telemetry." />;
   return <div className="table-wrap"><table><thead><tr><th>Tag</th><th>Value</th><th>Unit</th><th>Quality</th><th>Last sample</th></tr></thead><tbody>{tags.map(tag => {
     const stale = tag.ts && Date.now() - Date.parse(tag.ts) > tag.stale_seconds * 1000;
-    const quality = offline || stale ? 'stale' : tag.quality;
+    const quality = offline || stale || tag.enabled === false ? 'stale' : tag.quality;
     return <tr key={tag.id}><td><strong>{tag.name}</strong><small>{tag.key}</small></td><td className="mono">{tag.value === undefined || tag.value === null ? '—' : String(tag.value)}</td><td>{tag.unit || '—'}</td><td><QualityBadge quality={quality} /></td><td className="muted">{timeLabel(tag.ts)}</td></tr>;
   })}</tbody></table></div>;
 }

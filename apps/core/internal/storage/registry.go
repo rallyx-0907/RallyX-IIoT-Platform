@@ -36,7 +36,7 @@ var resources = map[string]definition{
 	"connections":      {map[string]string{"id": "id", "site_id": "id", "name": "name", "protocol": "connector", "enabled": "bool", "polling_interval_ms": "milliseconds", "timeout_ms": "timeout", "retry_policy": "object", "protocol_config": "object", "updated_at": "timestamp"}, []string{"site_id", "name", "protocol"}},
 	"devices":          {map[string]string{"id": "id", "asset_id": "id", "area_id": "id", "connection_id": "id", "template_id": "id", "template_version": "integer", "name": "name", "manufacturer": "text", "model": "text", "serial_number": "text", "protocol_device_address": "text", "enabled": "bool", "metadata": "object", "updated_at": "timestamp"}, []string{"asset_id", "connection_id", "name"}},
 	"device_templates": {map[string]string{"id": "id", "name": "name", "manufacturer": "text", "model": "text", "protocol": "connector", "version": "integer", "description": "text", "tag_definitions": "definitions", "updated_at": "timestamp"}, []string{"name", "protocol", "tag_definitions"}},
-	"tags":             {map[string]string{"id": "id", "asset_id": "id", "device_id": "id", "key": "id", "name": "name", "datatype": "datatype", "data_type": "data_type", "source_type": "connector", "address": "text", "function_code": "function_code", "byte_order": "order", "word_order": "order", "unit": "unit", "scale": "number", "offset": "number", "deadband": "nonnegative", "poll_interval_ms": "milliseconds", "semantic": "semantic", "mapping": "object", "metadata": "object", "sample_policy": "sample", "stale_seconds": "seconds", "store_history": "bool", "realtime_enabled": "bool", "enabled": "bool", "updated_at": "timestamp"}, []string{"device_id", "key", "name"}},
+	"tags":             {map[string]string{"id": "id", "asset_id": "id", "device_id": "id", "key": "id", "name": "name", "datatype": "datatype", "data_type": "data_type", "source_type": "connector", "address": "text", "function_code": "function_code", "byte_order": "order", "word_order": "order", "unit": "unit", "scale": "number", "offset": "number", "deadband": "nonnegative", "poll_interval_ms": "nullable_milliseconds", "semantic": "semantic", "mapping": "object", "metadata": "object", "sample_policy": "sample", "stale_seconds": "seconds", "store_history": "bool", "realtime_enabled": "bool", "enabled": "bool", "updated_at": "timestamp"}, []string{"device_id", "key", "name"}},
 	"rules":            {map[string]string{"id": "id", "tag_id": "id", "name": "name", "type": "rule", "threshold": "number", "hysteresis": "nonnegative", "stale_seconds": "seconds", "severity": "severity", "enabled": "bool", "condition_value": "scalar", "activation_delay_ms": "delay", "clear_delay_ms": "delay", "updated_at": "timestamp"}, []string{"tag_id", "name", "type"}},
 }
 
@@ -283,6 +283,9 @@ func (s Registry) write(ctx context.Context, tx pgx.Tx, resource, id string, bod
 }
 
 func valid(kind string, value any) bool {
+	if kind == "nullable_milliseconds" {
+		return value == nil || valid("milliseconds", value)
+	}
 	s, str := value.(string)
 	switch kind {
 	case "id":

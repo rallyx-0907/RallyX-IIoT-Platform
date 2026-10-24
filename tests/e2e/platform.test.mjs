@@ -4,9 +4,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
+import { fileURLToPath } from 'node:url';
 
 const base = process.env.RALLYX_BASE_URL || 'http://127.0.0.1:8080';
-const config = Object.fromEntries(readFileSync(new URL('../../.env', import.meta.url), 'utf8').split(/\r?\n/).filter(line => line && !line.startsWith('#')).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
+const configPath = process.env.RALLYX_ENV_FILE || fileURLToPath(new URL('../../.env', import.meta.url));
+const config = Object.fromEntries(readFileSync(configPath, 'utf8').split(/\r?\n/).filter(line => line && !line.startsWith('#')).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
 let cookie = '';
 async function api(path, method = 'GET', body) {
   const response = await fetch(`${base}/api/v1${path}`, { method, headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(10000) });
@@ -55,25 +57,36 @@ test('zero-hardware MQTT → Core → DB → API, alarms and WebSocket', { timeo
   if (user.must_change_password) {
     const password = randomBytes(24).toString('hex');
     user = await api('/auth/password', 'POST', { current_password: config.ADMIN_PASSWORD, new_password: password });
-    const envPath = new URL('../../.env', import.meta.url);
+    const envPath = configPath;
     const contents = readFileSync(envPath, 'utf8').replace(/^ADMIN_PASSWORD=.*$/m, `ADMIN_PASSWORD=${password}`);
     writeFileSync(envPath, contents); config.ADMIN_PASSWORD = password;
   }
   assert.equal(user.role, 'admin');
   const motor = config.SIMULATOR_MOTOR_ASSET_ID || 'demo-motor';
+  const motorDeviceID = config.SIMULATOR_MOTOR_DEVICE_ID || 'demo-motor-device';
+  const sensorDeviceID = config.SIMULATOR_SENSOR_DEVICE_ID || 'demo-sensor-device';
+  const devices = await api('/devices');
+  const motorDevice = devices.find(device => device.id === motorDeviceID);
+  const sensorDevice = devices.find(device => device.id === sensorDeviceID);
+  assert.ok(motorDevice && sensorDevice, 'configured simulator devices must exist');
+  await api(`/connections/${motorDevice.connection_id}`, 'PATCH', { enabled: true });
+  const controls = async ({run, fault, current, value}) => {
+    await api(`/devices/${motorDeviceID}`, 'PATCH', { enabled: true, metadata: { ...motorDevice.metadata, simulator_values: { run, fault, current } } });
+    await api(`/devices/${sensorDeviceID}`, 'PATCH', { enabled: true, metadata: { ...sensorDevice.metadata, simulator_values: { value } } });
+  };
   const tags = () => api(`/assets/${motor}/tags`);
-  await api('/simulator', 'POST', { enabled: true, run: false, fault: false, current: 0, value: 25 });
-  await waitFor(async () => (await tags()).some(tag => tag.semantic === 'run' && tag.value === false && tag.quality === 'good'), 'initial stop telemetry');
+  await controls({ run: false, fault: false, current: 0, value: 25 });
+  await waitFor(async () => (await tags()).some(tag => tag.semantic === 'run' && tag.value === false && tag.quality.toUpperCase() === 'GOOD'), 'initial stop telemetry');
   const started = new Date().toISOString();
   const stream = await openStream(); t.after(stream.close);
-  await api('/simulator', 'POST', { run: true, current: 12, fault: true, value: 90 });
+  await controls({ run: true, current: 12, fault: true, value: 90 });
   await waitFor(async () => (await tags()).some(tag => tag.semantic === 'run' && tag.value === true && Date.parse(tag.ts) >= Date.parse(started)), 'RUN and fault snapshot');
   await waitFor(async () => (await api('/alarms')).some(alarm => alarm.asset_id === motor && alarm.severity === 'critical'), 'fault alarm');
   const alarms = await api('/alarms');
   const alarm = alarms.find(alarm => alarm.asset_id === motor && alarm.severity === 'critical');
   const acknowledged = await api(`/alarms/${alarm.id}/ack`, 'POST', {});
   assert.ok(acknowledged.acknowledged_at);
-  await api('/simulator', 'POST', { run: false, fault: false, current: 0, value: 25 });
+  await controls({ run: false, fault: false, current: 0, value: 25 });
   await waitFor(async () => (await tags()).some(tag => tag.semantic === 'run' && tag.value === false && Date.parse(tag.ts) > Date.parse(started)), 'STOP snapshot');
   await waitFor(async () => !(await api('/alarms')).some(alarm => alarm.asset_id === motor), 'alarm clearance');
   const range = new URLSearchParams({ from: started, to: new Date().toISOString(), limit: '2000' });

@@ -32,7 +32,7 @@ switch (task) {
     run(process.execPath, ['--test', 'connectors/node-red/simulator.test.mjs']);
     run(process.execPath, ['--test', 'packages/contracts/*.test.mjs', 'apps/connectivity/src/*.test.mjs']);
     run(go, ['test', './...'], core);
-    runNpm(['test', '--', '--run'], web);
+    runNpm(['test', '--', '--run', '--minWorkers=1', '--maxWorkers=1'], web);
     break;
   case 'lint':
     run(go, ['vet', './...'], core);

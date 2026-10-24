@@ -12,7 +12,7 @@ Test Connection checks the saved configuration through Core and the connectivity
 
 Component tests cover create/edit payloads, preserving write-only credentials, diagnostics and validation errors, viewer restrictions, and archive confirmation/history retention. Run `npm --prefix apps/web test -- --run` and `npm run lint` / `npm run build` from the repository root.
 
-This source change does not upgrade the running baseline stack. The amended Core, device-aware UI and normalized producer must be rolled out together as described in `local-extensibility-plan.md`. Browser acceptance against that coordinated stack is still pending. Devices, Templates, complete Tag editor, CSV and dashboard pinning remain subsequent UI tasks. Physical RTU verification is a separate gate.
+The amended Core, device-aware UI and normalized producer must be rolled out together as described in `local-extensibility-plan.md`. Devices, Templates, the Tag editor, CSV and dashboard now have source and independent-stack Chromium acceptance; see `ui-configuration.md`. Installation rollout, physical RTU and broader release gates are tracked separately.
 
 ## Local development access
 

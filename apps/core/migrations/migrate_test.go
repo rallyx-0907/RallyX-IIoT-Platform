@@ -46,6 +46,34 @@ func TestMigrationsAndSeed(t *testing.T) {
 	if tags != 3 {
 		t.Fatalf("demo motor tags=%d want 3", tags)
 	}
+	// An existing V1 installation gains the metadata column with an empty
+	// object. Demo adoption must supply a simulator value without overwriting
+	// an explicitly configured one on later restarts.
+	var originalMetadata string
+	if err := pool.QueryRow(ctx, "SELECT metadata::text FROM tags WHERE id='demo-motor-run'").Scan(&originalMetadata); err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Exec(ctx, "UPDATE tags SET metadata=$1::jsonb WHERE id='demo-motor-run'", originalMetadata)
+	if _, err := pool.Exec(ctx, "UPDATE tags SET metadata='{}' WHERE id='demo-motor-run'"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Seed(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
+	var defaulted bool
+	if err := pool.QueryRow(ctx, "SELECT metadata ? 'simulator_value' FROM tags WHERE id='demo-motor-run'").Scan(&defaulted); err != nil || !defaulted {
+		t.Fatalf("existing demo tag has no simulator default: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE tags SET metadata='{"simulator_value":true,"custom":"retained"}' WHERE id='demo-motor-run'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := Seed(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
+	var retained bool
+	if err := pool.QueryRow(ctx, `SELECT metadata->'simulator_value'='true'::jsonb AND metadata->>'custom'='retained' FROM tags WHERE id='demo-motor-run'`).Scan(&retained); err != nil || !retained {
+		t.Fatalf("demo adoption overwrote configured metadata: %v", err)
+	}
 	_, err = pool.Exec(ctx, "INSERT INTO tags(id,asset_id,key,name,datatype) VALUES('orphan','does-not-exist','x','X','boolean')")
 	if err == nil {
 		t.Fatal("foreign key must reject orphan tags")

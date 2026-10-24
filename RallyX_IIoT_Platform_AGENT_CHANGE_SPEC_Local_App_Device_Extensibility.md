@@ -156,13 +156,13 @@ Connection
 ## B1. Connection CRUD
 
 - [x] CRUD Connection API.
-- [ ] UI `Settings > Connections`.
-- [ ] Nút `Test Connection`.
+- [x] UI `Settings > Connections`.
+- [x] Nút `Test Connection`.
 - [x] Validate protocol config trước Save.
 - [x] Thêm/sửa Connection không yêu cầu restart toàn platform.
 - [x] Một Connection lỗi không được làm crash Core hoặc worker khác.
 - [x] Có trạng thái `CONNECTED`, `DISCONNECTED`, `ERROR`, `DISABLED`.
-- [ ] Hiển thị `last_seen` / `last_successful_poll`.
+- [x] Hiển thị `last_seen` / `last_successful_poll`.
 
 ## B2. Modbus TCP config
 
@@ -219,7 +219,7 @@ Device
 ```
 
 - [x] CRUD Device API.
-- [ ] UI Add/Edit/Delete Device.
+- [x] UI Add/Edit/Delete Device.
 - [x] Device chọn Connection có sẵn.
 - [x] Device có thể chọn Device Template hoặc khai báo thủ công.
 - [x] Disable Device phải dừng polling nhưng không xóa history.
@@ -276,7 +276,7 @@ Tag
 Các cờ history/realtime và deadband đã có schema/code nhưng chưa được tích riêng khi chưa có đủ kiểm thử bật/tắt tương ứng. Tag Editor UI còn phải chuyển sang device model.
 
 - [x] CRUD Tag API.
-- [ ] Tag Editor UI.
+- [x] Tag Editor UI.
 - [x] Validate duplicate `key` trong cùng Device.
 - [x] Scale.
 - [x] Offset.
@@ -368,7 +368,7 @@ Tags:
 ```
 
 - [x] CRUD Device Template API.
-- [ ] Device Template UI.
+- [x] Device Template UI.
 - [x] Tạo Device từ Template.
 - [x] Clone Tag definitions thành Tag instance.
 - [x] Cho phép override connection/slave ID/address.
@@ -421,20 +421,20 @@ Asset Detail
 ```
 
 - [x] Không tạo page component riêng cho mỗi model thiết bị.
-- [ ] Tag `realtime_enabled=true` tự xuất hiện trong Live Data.
-- [ ] Tag `store_history=true` có History/Trend.
+- [x] Tag `realtime_enabled=true` tự xuất hiện trong Live Data.
+- [x] Tag `store_history=true` có History/Trend.
 - [x] Alarm Rule được tạo từ Tag mà không sửa code.
 
 ## F2. Dashboard pinning
 
 Đã kiểm chứng lưu định nghĩa Value/Status/Trend bằng API theo từng user; chưa nghiệm thu render widget, thao tác Pin và restart toàn platform bằng UI.
 
-- [ ] User có thể `Pin to Dashboard` từ một Tag.
-- [ ] Widget tối thiểu: Value.
-- [ ] Widget tối thiểu: Status.
-- [ ] Widget tối thiểu: Trend.
+- [x] User có thể `Pin to Dashboard` từ một Tag.
+- [x] Widget tối thiểu: Value.
+- [x] Widget tối thiểu: Status.
+- [x] Widget tối thiểu: Trend.
 - [x] Dashboard config lưu DB.
-- [ ] Restart app không mất dashboard config.
+- [x] Restart app không mất dashboard config.
 
 ---
 
@@ -493,12 +493,12 @@ Settings
 
 - [ ] Connection wizard.
 - [ ] Device wizard.
-- [ ] Template selector.
-- [ ] Tag editor.
-- [ ] Test Read từng Tag.
-- [ ] Hiển thị raw value + decoded value trong Test Read.
-- [ ] Connection status rõ ràng.
-- [ ] Last successful poll.
+- [x] Template selector.
+- [x] Tag editor.
+- [x] Test Read từng Tag.
+- [x] Hiển thị raw value + decoded value trong Test Read.
+- [x] Connection status rõ ràng.
+- [x] Last successful poll.
 - [ ] Không yêu cầu sửa YAML thủ công cho thao tác phổ biến.
 
 ---
@@ -619,15 +619,15 @@ Backend/API and Linux-container verification recorded in `docs/implementation-le
 
 ## L5. Web milestone
 
-- [ ] Connections screen.
-- [ ] Devices screen.
-- [ ] Tags screen.
-- [ ] Templates screen.
-- [ ] Asset dynamic page.
-- [ ] Live Data dynamic table.
-- [ ] History dynamic trend.
-- [ ] Alarm screen.
-- [ ] Pin to Dashboard.
+- [x] Connections screen.
+- [x] Devices screen.
+- [x] Tags screen.
+- [x] Templates screen.
+- [x] Asset dynamic page.
+- [x] Live Data dynamic table.
+- [x] History dynamic trend.
+- [x] Alarm screen.
+- [x] Pin to Dashboard.
 
 ## L6. Import/export milestone
 
@@ -734,8 +734,8 @@ Chỉ coi Change Spec hoàn thành khi:
 - [ ] Thêm Device bằng supported protocol không cần sửa source.
 - [x] Có Device Template.
 - [x] Có CSV import/export.
-- [ ] Live Data tự nhận Tag mới.
-- [ ] History tự nhận Tag `store_history=true`.
+- [x] Live Data tự nhận Tag mới.
+- [x] History tự nhận Tag `store_history=true`.
 - [ ] Alarm generic theo Tag/Rule.
 - [ ] Runtime generic theo Tag/Rule.
 - [ ] Dashboard không hard-code Device.
@@ -782,6 +782,8 @@ Chỉ coi Change Spec hoàn thành khi:
 - [x] Agent bắt đầu implementation theo plan mới.
 
 ## Progress Log
+
+2026-10-24: Dynamic UI + device producer verified in separate preview: Chromium 9/9, zero-hardware API E2E, real DB/broker backend suite and full-stack restart persistence pass. Source-level UI items are checked; physical RTU, detailed Rule Engine, offline/recovery/release gates remain scoped separately. See `docs/ui-configuration.md` and `docs/implementation-ledger.md`.
 
 2026-10-24: Connections UI source added with administrator create/edit/disable/archive, read-only non-admin access, protocol fields, status timestamps and Test Connection feedback. Component tests verify payloads, write-only credential retention, errors and archive confirmation. Full UI rollout/acceptance remains unchecked until the amended device/producer stack is coordinated; see `docs/connections-ui.md`.
 

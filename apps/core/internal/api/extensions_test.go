@@ -73,6 +73,17 @@ func TestDynamicConfigurationCSVAndPersonalDashboardAPI(t *testing.T) {
 	if json.Unmarshal(tags.Body.Bytes(), &tagRows) != nil || len(tagRows) != 1 {
 		t.Fatal("template tag not instantiated")
 	}
+	tagID := tagRows[0]["id"].(string)
+	if response := call("PATCH", "/api/v1/tags/"+tagID, map[string]any{"poll_interval_ms": 1500}, admin); response.Code != 200 {
+		t.Fatalf("set poll override: %d %s", response.Code, response.Body.String())
+	}
+	if response := call("PATCH", "/api/v1/tags/"+tagID, map[string]any{"poll_interval_ms": nil}, admin); response.Code != 200 {
+		t.Fatalf("clear poll override: %d %s", response.Code, response.Body.String())
+	}
+	var override *int
+	if err := pool.QueryRow(ctx, "SELECT poll_interval_ms FROM tags WHERE id=$1", tagID).Scan(&override); err != nil || override != nil {
+		t.Fatalf("poll override not cleared: %v %v", override, err)
+	}
 	tree := call("GET", "/api/v1/assets/tree", nil, admin)
 	if tree.Code != 200 || strings.Contains(tree.Body.String(), `"panels":`) || !strings.Contains(tree.Body.String(), deviceID) {
 		t.Fatal("active hierarchy is not device-oriented")
