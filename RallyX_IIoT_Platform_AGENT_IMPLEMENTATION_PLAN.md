@@ -1044,6 +1044,8 @@ An agent must not declare the MVP complete until all gates below are checked.
 
 # 10. Progress Log
 
+2026-10-24 approved operating upgrade: deployed the exact rehearsed Core/Web/connectivity images to the existing port 8080 after explicit user approval. All six services healthy; unchanged admin credentials pass real Chromium login, six configuration APIs and eleven pages pass read-only smoke. Windows URL returns HTTP 200. Migrations 001/002/003 applied; 26,167 historical samples and seven runtime sessions present, four current tags GOOD. Pre-upgrade checksummed snapshot and old images retained. Full V1 release gates remain open.
+
 2026-10-24 backup/restore: secure versioned/checksummed bundles and explicit-root confirmed restore verified on two independent copied installations. Key mismatch and tampered payloads reject before effects; asset metadata, Timescale telemetry and Node-RED volume/flows recover while target DB credentials/source config remain intact. Timescale pre/post hooks and strict restore errors are enforced. Update/rollback/offline/physical-host gates remain open; see `docs/backup-restore.md`.
 
 2026-10-24 verified continuation: dynamic configuration UI and device producer, Chromium 9/9, API zero-hardware scenario, real DB/broker integration and separate full-stack restart retaining the same open runtime session/config/dashboard/history. Existing-demo simulator defaults now migrate without overwriting configured metadata. A pre-upgrade snapshot restores into a separate database. No physical RTU/offline/release completion is claimed. See `docs/ui-configuration.md`.

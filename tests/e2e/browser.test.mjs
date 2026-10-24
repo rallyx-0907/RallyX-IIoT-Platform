@@ -7,6 +7,7 @@ import net from 'node:net';
 
 // Real browser and real read-only Modbus source; no browser automation dependency.
 const base = process.env.RALLYX_BROWSER_BASE_URL || 'http://web:8080';
+const smokeOnly = process.env.RALLYX_BROWSER_SMOKE_ONLY === 'true';
 const configPath = process.env.RALLYX_ENV_FILE || '.env';
 const config = Object.fromEntries(readFileSync(configPath, 'utf8').split(/\r?\n/).filter(line => /^[A-Z_]+=/.test(line)).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -72,7 +73,7 @@ class Browser {
   close() { this.socket?.close(); this.process?.kill(); }
 }
 
-test('configure local hierarchy, Modbus templates, tags, CSV and persisted dashboard through Chromium', { timeout: 300000 }, async t => {
+test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' : 'configure local hierarchy, Modbus templates, tags, CSV and persisted dashboard through Chromium', { timeout: 300000 }, async t => {
   const browser = new Browser();
   let sourceOffset = 0;
   const sockets = new Set();
@@ -95,8 +96,8 @@ test('configure local hierarchy, Modbus templates, tags, CSV and persisted dashb
     });
     socket.on('error', () => {});
   });
-  await new Promise(resolve => source.listen(1502, '0.0.0.0', resolve));
-  t.after(() => { browser.close(); for (const socket of sockets) socket.destroy(); source.close(); });
+  if (!smokeOnly) await new Promise(resolve => source.listen(1502, '0.0.0.0', resolve));
+  t.after(() => { browser.close(); for (const socket of sockets) socket.destroy(); if (source.listening) source.close(); });
   const stamp = Date.now();
   const site = `UI site ${stamp}`, area = `UI area ${stamp}`, asset = `UI asset ${stamp}`;
   const connection = `UI Modbus ${stamp}`, template = `UI meter ${stamp}`, deviceA = `UI meter A ${stamp}`, deviceB = `UI meter B ${stamp}`;
@@ -109,10 +110,22 @@ test('configure local hierarchy, Modbus templates, tags, CSV and persisted dashb
     await browser.click('Sign in');
     await until(() => browser.eval(() => document.body.innerText.includes('Set your password') || document.body.innerText.includes('Equipment overview')), 'login');
     if (await browser.eval(() => document.body.innerText.includes('Set your password'))) {
+      assert.equal(smokeOnly, false, 'read-only smoke does not change installation passwords');
       const password = randomBytes(24).toString('hex');
       await browser.fill('Current password', config.ADMIN_PASSWORD); await browser.fill('New password', password); await browser.click('Save password');
       await browser.text('Equipment overview');
       writeFileSync(configPath, readFileSync(configPath, 'utf8').replace(/^ADMIN_PASSWORD=.*$/m, `ADMIN_PASSWORD=${password}`)); config.ADMIN_PASSWORD = password;
+    }
+    if (smokeOnly) {
+      const statuses = await browser.eval(async () => Promise.all(['/assets/tree', '/connections', '/devices', '/templates', '/tags', '/dashboard'].map(async path => (await fetch('/api/v1' + path)).status)));
+      assert.ok(statuses.every(status => status === 200));
+      for (const [hash, title] of [['assets', 'Assets'], ['connections', 'Connections'], ['devices', 'Devices'], ['templates', 'Templates'], ['configuration', 'Tag Configuration'], ['live', 'Live Data'], ['history', 'History & Trends'], ['rules', 'Rules'], ['alarms', 'Alarms'], ['system', 'System'], ['overview', 'Overview']]) {
+        await browser.page(hash, title); await pause(200);
+        assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
+      }
+      await browser.screenshot('operating-ui');
+      await browser.click('Sign out'); await browser.text('Sign in to RallyX');
+      return;
     }
     await t.test('Site, Area and Asset configuration', async () => {
       await browser.page('assets', 'Assets'); await browser.click('+ Add site'); await browser.fill('Name', site); await browser.click('Create site'); await browser.text(site);
