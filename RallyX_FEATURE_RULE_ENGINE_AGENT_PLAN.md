@@ -992,6 +992,8 @@ Rule Engine V1 is complete only when ALL are true:
 
 # 18. Progress Log
 
+2026-10-24 domain foundation: added `internal/rules` pure types/validation/condition and ALL/ANY evaluator with diagnostics/snapshots. Local Go suite passes, including stale anchors, quality, hysteresis, compatible numeric equality and duration bounds; premature bad-quality stale and incompatible inequality were caught and fixed by RED→GREEN regressions. This package is not yet integrated into persistence/runtime/API/UI; those tasks remain open. See `docs/rule-engine.md`.
+
 Agent must append concise entries here after completing a meaningful task/milestone.
 
 | Date | Task | Result | Tests/Verification | Notes / Follow-up |
