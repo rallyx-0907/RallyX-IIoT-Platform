@@ -57,6 +57,9 @@ func (s Registry) Write(ctx context.Context, resource, id string, body map[strin
 }
 
 func (s Registry) write(ctx context.Context, tx pgx.Tx, resource, id string, body map[string]any, actor string) (json.RawMessage, error) {
+	if resource == "rules" {
+		return s.writeRule(ctx, tx, id, body, actor)
+	}
 	var err error
 	copyBody := make(map[string]any, len(body))
 	for key, value := range body {
@@ -151,7 +154,7 @@ func (s Registry) write(ctx context.Context, tx pgx.Tx, resource, id string, bod
 		}
 		if datatype, ok := body["datatype"].(string); ok && datatype != oldDatatype {
 			var incompatible bool
-			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM tag_current_state WHERE tag_id=$1) OR EXISTS(SELECT 1 FROM rules WHERE tag_id=$1 AND ((type='fault' AND $2<>'boolean') OR (type IN ('high','low') AND $2<>'number')))`, id, datatype).Scan(&incompatible); err != nil {
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM tag_current_state WHERE tag_id=$1) OR EXISTS(SELECT 1 FROM rules WHERE tag_id=$1 AND ((type='fault' AND $2<>'boolean') OR (type IN ('high','low') AND $2<>'number'))) OR EXISTS(SELECT 1 FROM rule_conditions WHERE tag_id=$1)`, id, datatype).Scan(&incompatible); err != nil {
 				return nil, err
 			}
 			if incompatible {

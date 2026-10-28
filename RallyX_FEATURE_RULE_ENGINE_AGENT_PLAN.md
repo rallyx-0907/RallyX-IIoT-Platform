@@ -992,6 +992,8 @@ Rule Engine V1 is complete only when ALL are true:
 
 # 18. Progress Log
 
+2026-10-28 runtime/API/UI integration: connected typed conditions and ALL/ANY to accepted telemetry batches and the one-second scheduler; added durable activation/clear state, startup recovery, snapshots and an alarm-transition persistence handler. Added administrator CRUD and read-only snapshot Test API plus bilingual multi-condition editor. Migration 005 preserves legacy false-condition semantics without changing applied migration checksums. Complete Go/real-DB suites, 68 Web tests/build, MQTT broker mapping/order checks and isolated Chromium Modbus/Rule lifecycle acceptance (9/9) pass. Restart regressions cover pending activation, active alarm identity and pending clear. Remaining gates include sustained load, physical equipment and final release acceptance; do not mark the entire feature complete. Clear reason uses the existing `condition_cleared` contract. See `docs/rule-engine.md` and `docs/demo-technical-status.vi.md`.
+
 2026-10-24 domain foundation: added `internal/rules` pure types/validation/condition and ALL/ANY evaluator with diagnostics/snapshots. Local Go suite passes, including stale anchors, quality, hysteresis, compatible numeric equality and duration bounds; premature bad-quality stale and incompatible inequality were caught and fixed by RED→GREEN regressions. This package is not yet integrated into persistence/runtime/API/UI; those tasks remain open. See `docs/rule-engine.md`.
 
 Agent must append concise entries here after completing a meaningful task/milestone.

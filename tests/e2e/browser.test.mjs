@@ -234,7 +234,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
     });
     await t.test('new tag rule activates, acknowledges and clears into history', async () => {
       const name = `UI high ${stamp}`;
-      await browser.page('rules', 'Rules'); await browser.click('+ Add rule'); await browser.fill('Name', name); await browser.fill('Tag', tag.id); await browser.fill('Rule type', 'high'); await browser.fill('Threshold', '50'); await browser.click('Save configuration'); await browser.text(name);
+      await browser.page('rules', 'Rules'); await browser.click('Add rule'); await browser.fill('Rule name', name); await browser.click('Add condition'); await browser.fill('Tag', tag.id); await browser.fill('Operand', '50'); await browser.eval(() => { const input = document.querySelector('.rule-check input'); input.click(); }); await browser.click('Test rule'); await browser.text('Test result'); await browser.click('Save rule'); await browser.text(name);
       await browser.page('alarms', 'Alarms'); await browser.text(name); await browser.fill('Filter alarms by asset', a.asset_id); await browser.click('Acknowledge'); await browser.text('Acknowledged');
       sourceOffset = -100;
       await until(() => browser.eval(name => ![...document.querySelectorAll('tbody tr')].some(row => row.textContent.includes(name)), name), 'alarm clear');

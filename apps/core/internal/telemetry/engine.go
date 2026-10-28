@@ -19,6 +19,7 @@ var ErrRejected = errors.New("telemetry rejected")
 type Engine struct {
 	Pool      *pgxpool.Pool
 	Broadcast func(any)
+	Now       func() time.Time
 }
 type tagConfig struct {
 	ID, Key, Datatype, DataType, Semantic, SamplePolicy string
@@ -114,6 +115,7 @@ func (e *Engine) Process(ctx context.Context, message Message) error {
 	}
 	sort.Strings(keys)
 	changed := false
+	accepted := []string{}
 	for _, key := range keys {
 		tag := configs[key]
 		raw := values[key]
@@ -127,7 +129,7 @@ func (e *Engine) Process(ctx context.Context, message Message) error {
 		if err == nil && !message.Timestamp.After(previous) {
 			continue
 		}
-		_, err = tx.Exec(ctx, `INSERT INTO tag_current_state(tag_id,value,quality,ts,raw_value) VALUES($1,$2,$3,$4,$5) ON CONFLICT(tag_id) DO UPDATE SET value=excluded.value,quality=excluded.quality,ts=excluded.ts,raw_value=excluded.raw_value,received_at=now()`, tag.ID, raw, message.Quality, message.Timestamp, message.Tags[key])
+		_, err = tx.Exec(ctx, `INSERT INTO tag_current_state(tag_id,value,quality,ts,raw_value,last_good_at) VALUES($1,$2,$3,$4,$5,CASE WHEN $3='GOOD' THEN $4::timestamptz ELSE NULL END) ON CONFLICT(tag_id) DO UPDATE SET value=excluded.value,quality=excluded.quality,ts=excluded.ts,raw_value=excluded.raw_value,received_at=now(),last_good_at=COALESCE(excluded.last_good_at,tag_current_state.last_good_at)`, tag.ID, raw, message.Quality, message.Timestamp, message.Tags[key])
 		if err != nil {
 			return err
 		}
@@ -162,11 +164,32 @@ func (e *Engine) Process(ctx context.Context, message Message) error {
 					return err
 				}
 			}
-			if err = e.evaluate(ctx, tx, asset, tag.ID, raw, message.Timestamp); err != nil {
+		}
+		accepted = append(accepted, tag.ID)
+		changed = true
+	}
+	if len(accepted) > 0 {
+		rows, err := tx.Query(ctx, `SELECT id FROM rules WHERE enabled AND deleted_at IS NULL AND (tag_id=ANY($1::text[]) OR id IN (SELECT rule_id FROM rule_conditions WHERE tag_id=ANY($1::text[]))) ORDER BY id`, accepted)
+		if err != nil {
+			return err
+		}
+		var ids []string
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				rows.Close()
 				return err
 			}
+			ids = append(ids, id)
 		}
-		changed = true
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		if _, err = EvaluateRules(ctx, tx, ids, e.ruleTime()); err != nil {
+			return err
+		}
 	}
 	if changed {
 		if _, err = tx.Exec(ctx, `UPDATE connections SET last_seen=now(),quality=$2,status='CONNECTED',last_successful_poll=CASE WHEN $2='GOOD' THEN now() ELSE last_successful_poll END WHERE id IN (SELECT d.connection_id FROM devices d WHERE d.id=$1)`, message.DeviceID, message.Quality); err != nil {
@@ -241,74 +264,6 @@ func (e *Engine) transition(ctx context.Context, tx pgx.Tx, asset, tag, semantic
 	return err
 }
 
-func (e *Engine) evaluate(ctx context.Context, tx pgx.Tx, asset, tag string, value json.RawMessage, ts time.Time) error {
-	rows, err := tx.Query(ctx, "SELECT id,type,severity,threshold,hysteresis FROM rules WHERE tag_id=$1 AND enabled ORDER BY id", tag)
-	if err != nil {
-		return err
-	}
-	var rules []rule
-	for rows.Next() {
-		var r rule
-		if err := rows.Scan(&r.ID, &r.Type, &r.Severity, &r.Threshold, &r.Hysteresis); err != nil {
-			rows.Close()
-			return err
-		}
-		rules = append(rules, r)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return err
-	}
-	for _, r := range rules {
-		var active bool
-		if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM alarms WHERE rule_id=$1 AND cleared_at IS NULL)", r.ID).Scan(&active); err != nil {
-			return err
-		}
-		trigger := false
-		switch r.Type {
-		case "fault":
-			var boolean bool
-			if json.Unmarshal(value, &boolean) != nil {
-				continue
-			}
-			trigger = boolean
-		case "high", "low":
-			var number float64
-			if json.Unmarshal(value, &number) != nil || r.Threshold == nil {
-				continue
-			}
-			threshold := *r.Threshold
-			if r.Type == "high" {
-				if active {
-					threshold -= r.Hysteresis
-				}
-				trigger = number > threshold
-			} else {
-				if active {
-					threshold += r.Hysteresis
-				}
-				trigger = number < threshold
-			}
-		case "stale":
-			trigger = false
-		}
-		if err := setAlarm(ctx, tx, r.ID, asset, r.Severity, trigger, value, ts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func setAlarm(ctx context.Context, tx pgx.Tx, ruleID, asset, severity string, trigger bool, value json.RawMessage, ts time.Time) error {
-	if trigger {
-		_, err := tx.Exec(ctx, `INSERT INTO alarms(rule_id,asset_id,severity,value,activated_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(rule_id) WHERE cleared_at IS NULL DO NOTHING`, ruleID, asset, severity, value, ts)
-		return err
-	}
-	_, err := tx.Exec(ctx, "UPDATE alarms SET cleared_at=GREATEST(activated_at,$2) WHERE rule_id=$1 AND cleared_at IS NULL", ruleID, ts)
-	return err
-}
-
 func (e *Engine) Sweep(ctx context.Context, now time.Time) error {
 	rows, err := e.Pool.Query(ctx, "SELECT id FROM assets WHERE enabled ORDER BY id")
 	if err != nil {
@@ -359,33 +314,29 @@ func (e *Engine) sweepAsset(ctx context.Context, asset string, now time.Time) (b
 	if _, err := tx.Exec(ctx, "UPDATE tags t SET quality='STALE' FROM tag_current_state s WHERE t.id=s.tag_id AND t.asset_id=$1 AND upper(s.quality)='STALE'", asset); err != nil {
 		return false, err
 	}
-	rows, err := tx.Query(ctx, `SELECT r.id,r.severity,(s.ts IS NULL OR s.ts<$2::timestamptz-make_interval(secs=>r.stale_seconds) OR upper(s.quality)<>'GOOD') FROM rules r JOIN tags t ON t.id=r.tag_id JOIN devices d ON d.id=t.device_id JOIN connections c ON c.id=d.connection_id LEFT JOIN tag_current_state s ON s.tag_id=t.id WHERE t.asset_id=$1 AND r.enabled AND r.type='stale' AND t.enabled AND d.enabled AND c.enabled AND t.deleted_at IS NULL AND d.deleted_at IS NULL AND c.deleted_at IS NULL ORDER BY r.id`, asset, now)
+	rows, err := tx.Query(ctx, `SELECT r.id FROM rules r LEFT JOIN rule_evaluation_state s ON s.rule_id=r.id JOIN tags t ON t.id=r.tag_id WHERE t.asset_id=$1 AND r.enabled AND r.deleted_at IS NULL AND (s.state IN ('pending_active','pending_clear') OR r.type='stale' OR EXISTS(SELECT 1 FROM rule_conditions c WHERE c.rule_id=r.id AND c.operator='stale_for')) ORDER BY r.id`, asset)
 	if err != nil {
 		return false, err
 	}
-	type staleRule struct {
-		ID, Severity string
-		Trigger      bool
-	}
-	var rules []staleRule
+	var ids []string
 	for rows.Next() {
-		var r staleRule
-		if err := rows.Scan(&r.ID, &r.Severity, &r.Trigger); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			rows.Close()
 			return false, err
 		}
-		rules = append(rules, r)
+		ids = append(ids, id)
 	}
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
 		return false, err
 	}
-	for _, r := range rules {
-		if err := setAlarm(ctx, tx, r.ID, asset, r.Severity, r.Trigger, json.RawMessage("null"), now); err != nil {
-			return false, err
-		}
+	ruleChanged, err := EvaluateRules(ctx, tx, ids, now)
+	if err != nil {
+		return false, err
 	}
+
 	err = tx.Commit(ctx)
-	return command.RowsAffected() > 0 || len(rules) > 0, err
+	return command.RowsAffected() > 0 || ruleChanged, err
 }

@@ -2,6 +2,14 @@
 
 Plan: `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md`.
 
+## Rule Engine integration 2026-10-28
+
+Implemented composite typed conditions, ALL/ANY, durable debounce, startup recovery, side-effect-free Test, snapshots and a Vietnamese/English editor. Accepted telemetry batches evaluate atomically; scheduled rules run every second; alarm transitions are persisted through a separate lifecycle handler. Migration 005 repairs legacy false fault conditions while preserving applied checksums. Review fixes verified; no outstanding critical/important findings.
+
+Evidence: complete Go and real PostgreSQL/broker suites; 68 Web tests and production build; 20 adapter tests plus two live MQTT broker tests; isolated Chromium Modbus/CSV/Rule lifecycle acceptance 9/9. Startup regressions preserve pending activation, active alarm identity and pending clear. Candidate rollout is tracked separately below. User requests both generic Modbus TCP and MQTT datapoints; configured points, not device models, drive rules. Physical endpoints and sustained-load/offline/reboot release gates remain open. Retention-policy work is deferred at the user's request. See `demo-technical-status.vi.md`.
+
+Final rollout verified: Core `07ee81491268` and Web `e2baac26965f` deployed to the six-service operating stack after backup and preview migration rehearsal. Previous operating images retained under `pre-rules-20261028`. Preview and operating bilingual/readability Chromium smoke both pass (2/2); Windows confirms HTTP 200 and bundle `index-BHcW27kr.js` at `http://172.27.165.200:8080`. Final frontend rerun with bounded workers passes 68/68; an earlier fully parallel run timed out in an unchanged dashboard test under concurrent build load. Backup is local/ignored under `.tools/pre-rules-backup` and contains private installation data. Preview stopped after verification.
+
 ## Vietnamese and hierarchy correction 2026-10-28
 
 User-requested hierarchy formatting and Vietnamese UI are implemented and deployed. The tree separates tag name/key/type, identifies hierarchy levels, supports selection/expansion and remains visible at narrow widths. Vietnamese is the first-run default with a persistent Vietnamese/English selector before and after login. Configured names, string readings and wire values remain intact; dates/runtime units and interface states/errors are localized. See `localization.md` and `vi-hierarchy-plan.md`.

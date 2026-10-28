@@ -34,6 +34,7 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 	registerHistory(mux, pool, hub)
 	registerAdmin(mux, pool, mqttHealthy)
 	registerConfigurationTools(mux, registry, hub)
+	registerRules(mux, registry, hub)
 	registerConnectivity(root, registry, hub)
 	registerConnectivityDiagnostics(mux)
 	databaseHealthy := func(ctx context.Context) bool { return pool.Ping(ctx) == nil }
@@ -53,7 +54,7 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 		"devices":     "SELECT id,connection_id,asset_id,area_id,template_id,template_version,name,manufacturer,model,serial_number,protocol_device_address,enabled,metadata,status,last_seen,last_successful_poll,last_error,created_at,updated_at FROM devices WHERE deleted_at IS NULL ORDER BY name,id",
 		"templates":   "SELECT * FROM device_templates WHERE deleted_at IS NULL ORDER BY name,id",
 		"tags":        "SELECT t.*,s.value,CASE WHEN upper(COALESCE(s.quality,t.quality))='UNKNOWN' THEN 'UNCERTAIN' ELSE upper(COALESCE(s.quality,t.quality)) END AS quality,s.ts,s.received_at,s.raw_value,d.name AS device_name,a.name AS asset_name FROM tags t JOIN devices d ON d.id=t.device_id JOIN assets a ON a.id=t.asset_id LEFT JOIN tag_current_state s ON s.tag_id=t.id WHERE t.deleted_at IS NULL AND d.deleted_at IS NULL ORDER BY t.name,t.id",
-		"rules":       "SELECT * FROM rules ORDER BY name,id",
+		"rules":       storage.RulesQuery,
 		"assets/tree": storage.TreeQuery,
 	} {
 		mux.HandleFunc("GET /api/v1/"+resource, func(w http.ResponseWriter, r *http.Request) {

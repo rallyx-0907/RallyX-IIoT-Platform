@@ -51,6 +51,8 @@ type Condition struct {
 type Rule struct {
 	ID                string        `json:"id,omitempty"`
 	Name              string        `json:"name"`
+	Description       string        `json:"description"`
+	MessageTemplate   string        `json:"message_template"`
 	Enabled           bool          `json:"enabled"`
 	Logic             Logic         `json:"logic"`
 	Severity          Severity      `json:"severity"`

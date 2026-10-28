@@ -32,6 +32,7 @@ func TestDurableTransitionsAndRules(t *testing.T) {
 	engine := &Engine{Pool: pool}
 	at := time.Now().UTC().Truncate(time.Microsecond)
 	process := func(ts time.Time, quality string, tags string) error {
+		engine.Now = func() time.Time { return ts }
 		var values map[string]json.RawMessage
 		if err := json.Unmarshal([]byte(tags), &values); err != nil {
 			t.Fatal(err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -93,6 +94,9 @@ func run(ctx context.Context) error {
 	}
 	hub := realtime.NewHub()
 	engine := &telemetry.Engine{Pool: pool, Broadcast: hub.Broadcast}
+	if err := engine.RecoverRules(ctx); err != nil {
+		return fmt.Errorf("rule engine recovery: %w", err)
+	}
 	clientID := os.Getenv("MQTT_CLIENT_ID")
 	if clientID == "" {
 		clientID = "rallyx-core"
@@ -103,7 +107,7 @@ func run(ctx context.Context) error {
 	}
 	defer broker.Close()
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		for {
 			select {

@@ -40,6 +40,31 @@ func TestMigrationsAndSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 	var tags int
+	t.Run("legacy false rule keeps its meaning", func(t *testing.T) {
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback(ctx)
+		const id = "migration-false-regression"
+		if _, err = tx.Exec(ctx, `INSERT INTO rules(id,tag_id,name,type,condition_value) VALUES($1,'demo-motor-fault','False regression','fault','false');`, id); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tx.Exec(ctx, `INSERT INTO rule_conditions(id,rule_id,tag_id,operator,position) VALUES($1||'-condition',$1,'demo-motor-fault','is_true',0)`, id); err != nil {
+			t.Fatal(err)
+		}
+		repair, err := files.ReadFile("005_legacy_false_rule.up.sql")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tx.Exec(ctx, string(repair)); err != nil {
+			t.Fatal(err)
+		}
+		var op string
+		if err = tx.QueryRow(ctx, "SELECT operator FROM rule_conditions WHERE rule_id=$1", id).Scan(&op); err != nil || op != "is_false" {
+			t.Fatalf("operator=%s err=%v", op, err)
+		}
+	})
 	if err := pool.QueryRow(ctx, "SELECT count(*) FROM tags WHERE id IN ('demo-motor-run','demo-motor-fault','demo-motor-current')").Scan(&tags); err != nil {
 		t.Fatal(err)
 	}

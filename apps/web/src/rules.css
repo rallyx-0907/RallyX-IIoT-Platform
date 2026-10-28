@@ -1,0 +1,25 @@
+.rules-page { display: grid; gap: 1rem; }
+.rule-editor, .rule-confirm { padding: 1.25rem; }
+.rule-form { display: grid; gap: 1.25rem; }
+.rule-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem 1rem; }
+.rule-fields label, .rule-condition label { display: grid; gap: .35rem; min-width: 0; }
+.rule-fields input, .rule-fields select, .rule-fields textarea, .rule-condition input, .rule-condition select { width: 100%; box-sizing: border-box; }
+.rule-wide { grid-column: 1 / -1; }
+.rule-check { display: flex !important; align-items: center; gap: .55rem !important; }
+.rule-check input { width: auto; }
+.rule-conditions-heading, .rule-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.rule-conditions-heading h3 { margin: 0; }
+.rule-condition { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(120px, 1fr)) auto; align-items: end; gap: .75rem; padding: .9rem; border: 1px solid var(--border, #d7dce2); border-radius: .5rem; }
+.rule-fixed-value { min-height: 2.5rem; display: flex; align-items: center; color: var(--muted, #667085); }
+.rule-actions { justify-content: flex-end; }
+.rule-test-result { padding: .85rem 1rem; border-left: 3px solid var(--accent, #3578c5); background: var(--surface-muted, #f5f7fa); }
+.rule-test-result p { margin: .45rem 0 0; }
+.rules-table td small { display: block; margin-top: .25rem; color: var(--muted, #667085); }
+.rule-row-actions { white-space: nowrap; }
+.rule-row-actions button { margin: .1rem; }
+.rule-state { display: inline-flex; padding: .22rem .55rem; border-radius: 1rem; background: var(--surface-muted, #f1f3f5); font-size: .85em; }
+.rule-state-active { background: #fee4e2; color: #b42318; }
+.rule-state-pending_active, .rule-state-pending_clear { background: #fff2cc; color: #875700; }
+.rule-state-inactive { color: #475467; }
+@media (max-width: 900px) { .rule-condition { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rule-condition > button { justify-self: start; } }
+@media (max-width: 600px) { .rule-fields { grid-template-columns: 1fr; } .rule-wide { grid-column: auto; } .rule-condition { grid-template-columns: 1fr; } .rules-table { min-width: 760px; } }

@@ -137,7 +137,7 @@ func registerHistory(mux *http.ServeMux, pool *pgxpool.Pool, hub *realtime.Hub) 
 				apiError(w, err)
 				return
 			}
-			query := `SELECT a.*,r.name AS rule_name,t.name AS tag_name,x.name AS asset_name FROM alarms a JOIN rules r ON r.id=a.rule_id JOIN tags t ON t.id=r.tag_id JOIN assets x ON x.id=a.asset_id WHERE ` + filter + ` AND ($1='' OR a.asset_id=$1)`
+			query := `SELECT a.*,r.name AS rule_name,t.name AS tag_name,x.name AS asset_name,extract(epoch FROM COALESCE(a.cleared_at,now())-a.activated_at)::float8 AS duration_seconds FROM alarms a JOIN rules r ON r.id=a.rule_id LEFT JOIN tags t ON t.id=r.tag_id JOIN assets x ON x.id=a.asset_id WHERE ` + filter + ` AND ($1='' OR a.asset_id=$1)`
 			args := []any{r.URL.Query().Get("asset_id"), bounds.Limit, bounds.Offset}
 			if history {
 				query += " AND a.activated_at>=$4 AND a.activated_at<$5"
@@ -170,7 +170,7 @@ func registerHistory(mux *http.ServeMux, pool *pgxpool.Pool, hub *realtime.Hub) 
 		}
 		defer tx.Rollback(r.Context())
 		var acknowledged *time.Time
-		if err = tx.QueryRow(r.Context(), "SELECT acknowledged_at FROM alarms WHERE id=$1 FOR UPDATE", id).Scan(&acknowledged); err != nil {
+		if err = tx.QueryRow(r.Context(), "SELECT acknowledged_at FROM alarms WHERE id=$1 AND cleared_at IS NULL FOR UPDATE", id).Scan(&acknowledged); err != nil {
 			apiError(w, err)
 			return
 		}

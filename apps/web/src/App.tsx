@@ -8,7 +8,7 @@ import { Overview } from './pages/Overview';
 import { Assets } from './pages/Assets';
 import { History } from './pages/History';
 import { Alarms } from './pages/Alarms';
-import { Configuration } from './pages/Configuration';
+import { Rules } from './pages/Rules';
 import { System } from './pages/System';
 import { Connections } from './pages/Connections';
 import { Devices } from './pages/Devices';
@@ -70,7 +70,7 @@ export function App() {
           {current[0] === 'history' && <History data={data} />}
           {current[0] === 'alarms' && <Alarms data={data} user={user} onAck={acknowledge} />}
           {current[0] === 'configuration' && <Tags user={user} onRefresh={refresh} />}
-          {current[0] === 'rules' && <Configuration mode="rules" data={data} user={user} onRefresh={refresh} />}
+          {current[0] === 'rules' && <Rules data={data} user={user} onRefresh={refresh} />}
           {current[0] === 'connections' && <Connections user={user} />}
           {current[0] === 'devices' && <Devices user={user} onRefresh={refresh} />}
           {current[0] === 'templates' && <Templates user={user} />}

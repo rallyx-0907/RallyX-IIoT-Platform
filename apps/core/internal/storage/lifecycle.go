@@ -78,6 +78,9 @@ func pauseMonitoring(ctx context.Context, tx pgx.Tx, resource, id, reason string
 	if len(tags) == 0 {
 		return nil
 	}
+	if _, err = tx.Exec(ctx, `SELECT id FROM rules WHERE tag_id=ANY($1::text[]) OR id IN (SELECT rule_id FROM rule_conditions WHERE tag_id=ANY($1::text[])) ORDER BY id FOR UPDATE`, tags); err != nil {
+		return err
+	}
 	rows, err = tx.Query(ctx, "UPDATE runtime_sessions SET ended_at=GREATEST(started_at,now()),end_reason=$2 WHERE tag_id=ANY($1::text[]) AND ended_at IS NULL RETURNING asset_id,tag_id,kind,ended_at", tags, reason)
 	if err != nil {
 		return err
@@ -105,7 +108,7 @@ func pauseMonitoring(ctx context.Context, tx pgx.Tx, resource, id, reason string
 			return err
 		}
 	}
-	rows, err = tx.Query(ctx, "UPDATE alarms SET cleared_at=GREATEST(activated_at,now()),clear_reason=$2 WHERE cleared_at IS NULL AND rule_id IN (SELECT id FROM rules WHERE tag_id=ANY($1::text[])) RETURNING id,asset_id,cleared_at", tags, reason)
+	rows, err = tx.Query(ctx, "UPDATE alarms SET cleared_at=GREATEST(activated_at,now()),clear_reason=$2 WHERE cleared_at IS NULL AND rule_id IN (SELECT id FROM rules WHERE tag_id=ANY($1::text[]) OR id IN (SELECT rule_id FROM rule_conditions WHERE tag_id=ANY($1::text[]))) RETURNING id,asset_id,cleared_at", tags, reason)
 	if err != nil {
 		return err
 	}
@@ -132,6 +135,9 @@ func pauseMonitoring(ctx context.Context, tx pgx.Tx, resource, id, reason string
 		if _, err := tx.Exec(ctx, "INSERT INTO events(asset_id,kind,ts,detail) VALUES($1,'alarm_cleared',$2,jsonb_build_object('alarm_id',$3::bigint,'reason',$4::text))", alarm.Asset, alarm.At, alarm.ID, reason); err != nil {
 			return err
 		}
+	}
+	if _, err = tx.Exec(ctx, `UPDATE rule_evaluation_state SET state='inactive',pending_since=NULL,active_alarm_id=NULL,last_evaluated_at=now() WHERE rule_id IN (SELECT id FROM rules WHERE tag_id=ANY($1::text[]) OR id IN (SELECT rule_id FROM rule_conditions WHERE tag_id=ANY($1::text[])))`, tags); err != nil {
+		return err
 	}
 	if _, err := tx.Exec(ctx, "UPDATE tag_current_state SET quality='STALE' WHERE tag_id=ANY($1::text[])", tags); err != nil {
 		return err
@@ -188,6 +194,15 @@ func (s Registry) Archive(ctx context.Context, resource, id, actor string) error
 	defer tx.Rollback(ctx)
 	if err := lockConfigurationAssets(ctx, tx, resource, id, nil); err != nil {
 		return err
+	}
+	if resource == "tags" {
+		var referenced bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM rules r WHERE r.enabled AND r.deleted_at IS NULL AND (r.tag_id=$1 OR EXISTS(SELECT 1 FROM rule_conditions c WHERE c.rule_id=r.id AND c.tag_id=$1)))`, id).Scan(&referenced); err != nil {
+			return err
+		}
+		if referenced {
+			return fmt.Errorf("%w: disable or edit rules referencing this tag before archiving", ErrValidation)
+		}
 	}
 	if resource == "connections" {
 		var locked string

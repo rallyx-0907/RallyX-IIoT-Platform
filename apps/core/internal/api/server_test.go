@@ -108,6 +108,26 @@ func TestRegistryAuthenticationAndAudit(t *testing.T) {
 		t.Fatal(err)
 	}
 	var alarmID int64
+	definition := fmt.Sprintf(`{"name":"API composite","enabled":true,"logic":"any","severity":"warning","activation_delay_ms":5000,"conditions":[{"tag_id":%q,"operator":"gt","threshold":10,"hysteresis":1}]}`, id)
+	tested := request("POST", "/api/v1/rules/test", definition, cookie)
+	if tested.Code != 200 || !strings.Contains(tested.Body.String(), `"known"`) {
+		t.Fatalf("rule test: %d %s", tested.Code, tested.Body.String())
+	}
+	var sideEffects int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM rules r JOIN rule_conditions c ON c.rule_id=r.id WHERE r.name='API composite' AND c.tag_id=$1", id).Scan(&sideEffects); err != nil || sideEffects != 0 {
+		t.Fatalf("test persisted rule: %d %v", sideEffects, err)
+	}
+	composite := request("POST", "/api/v1/rules", definition, cookie)
+	if composite.Code != 201 {
+		t.Fatalf("create composite: %d %s", composite.Code, composite.Body.String())
+	}
+	var saved map[string]any
+	if err := json.Unmarshal(composite.Body.Bytes(), &saved); err != nil {
+		t.Fatal(err)
+	}
+	if got := request("GET", "/api/v1/rules/"+saved["id"].(string), "", cookie); got.Code != 200 || !strings.Contains(got.Body.String(), `"conditions"`) {
+		t.Fatalf("read composite: %d %s", got.Code, got.Body.String())
+	}
 	if err := pool.QueryRow(ctx, "INSERT INTO alarms(rule_id,asset_id,activated_at,severity) VALUES($1,'demo-motor',now(),'warning') RETURNING id", id+"-rule").Scan(&alarmID); err != nil {
 		t.Fatal(err)
 	}
@@ -125,6 +145,9 @@ func TestRegistryAuthenticationAndAudit(t *testing.T) {
 	}
 	if got := request("PATCH", "/api/v1/tags/"+id, `{"unit":"mA"}`, cookie).Code; got != 403 {
 		t.Fatalf("viewer write status=%d", got)
+	}
+	if got := request("POST", "/api/v1/rules/test", definition, cookie).Code; got != 403 {
+		t.Fatalf("viewer rule test status=%d", got)
 	}
 	if got := request("GET", "/api/v1/assets/demo-motor/tags", "", cookie).Code; got != 200 {
 		t.Fatalf("viewer read status=%d", got)

@@ -35,8 +35,9 @@ func TestConfigurationEditsPreserveStateIntegrity(t *testing.T) {
 	if _, err := pool.Exec(ctx, "INSERT INTO rules(id,tag_id,name,type,threshold) VALUES($1,$2,'High','high',10),($3,$4,'Stale','stale',NULL)", id+"-high", id+"-current", id+"-stale", id+"-run"); err != nil {
 		t.Fatal(err)
 	}
-	engine := telemetry.Engine{Pool: pool}
-	if err := engine.Process(ctx, telemetry.Message{DeviceID: deviceID, AssetID: id, Timestamp: time.Now().Add(-time.Minute), Quality: "good", Tags: map[string]json.RawMessage{"run": json.RawMessage("true"), "current": json.RawMessage("20")}}); err != nil {
+	initial := time.Now().Add(-time.Minute)
+	engine := telemetry.Engine{Pool: pool, Now: func() time.Time { return initial }}
+	if err := engine.Process(ctx, telemetry.Message{DeviceID: deviceID, AssetID: id, Timestamp: initial, Quality: "good", Tags: map[string]json.RawMessage{"run": json.RawMessage("true"), "current": json.RawMessage("20")}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := engine.Sweep(ctx, time.Now()); err != nil {
