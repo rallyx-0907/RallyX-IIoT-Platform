@@ -32,13 +32,26 @@ grep -qx node-red <<<"$running" || fail 'Node-RED service must be running to cap
 mkdir -p -- "$output_dir"; chmod 700 -- "$output_dir"
 out_abs=$(cd -- "$output_dir" && pwd -P)
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/rallyx-backup.XXXXXXXX"); chmod 700 "$tmp"
-cleanup() { local prefix="${TMPDIR:-/tmp}/rallyx-backup."; [[ $tmp == "$prefix"* && -d $tmp && ! -L $tmp ]] && rm -rf -- "$tmp" || printf 'backup: refusing unsafe temporary cleanup path\n' >&2; }
+grafana_paused=false
+cleanup() { if [[ $grafana_paused == true ]]; then compose unpause grafana >/dev/null || true; fi; local prefix="${TMPDIR:-/tmp}/rallyx-backup."; [[ $tmp == "$prefix"* && -d $tmp && ! -L $tmp ]] && rm -rf -- "$tmp" || printf 'backup: refusing unsafe temporary cleanup path\n' >&2; }
 trap cleanup EXIT
 bundle=$tmp/bundle
 mkdir -m 700 -p "$bundle/config/mosquitto" "$bundle/connectors/node-red/flows" "$bundle/node-red"
 compose exec -T db sh -ec 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$bundle/database.dump" || fail 'database dump failed'
 [[ -s $bundle/database.dump ]] || fail 'database dump is empty'
 compose exec -T node-red tar -C /data --exclude=./settings.js -czf - . > "$bundle/node-red/data.tar.gz" || fail 'Node-RED data capture failed'
+grafana_cid=$(compose ps -a -q grafana 2>/dev/null || true)
+if [[ -n $grafana_cid ]]; then
+  mkdir -p "$bundle/grafana"
+  grafana_image=$(docker inspect --format '{{.Image}}' "$grafana_cid")
+  if grep -qx grafana <<<"$running"; then
+    compose pause grafana >/dev/null || fail 'could not pause Grafana for a consistent SQLite snapshot'
+    grafana_paused=true
+  fi
+  docker run --rm --volumes-from "$grafana_cid:ro" --entrypoint tar "$grafana_image" -C /var/lib/grafana -czf - . > "$bundle/grafana/data.tar.gz" || fail 'Grafana data capture failed'
+  if [[ $grafana_paused == true ]]; then compose unpause grafana >/dev/null || fail 'could not resume Grafana'; grafana_paused=false; fi
+fi
+if [[ -d $root/config/grafana ]]; then cp -R -- "$root/config/grafana" "$bundle/config/grafana"; fi
 cp -- "$env_file" "$bundle/.env"
 cp -- "$root/compose.yaml" "$bundle/compose.yaml"
 cp -- "$root/config/mosquitto/mosquitto.conf" "$bundle/config/mosquitto/mosquitto.conf"

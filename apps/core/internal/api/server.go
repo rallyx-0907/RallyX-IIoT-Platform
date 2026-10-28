@@ -23,6 +23,7 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 	mux := http.NewServeMux()
 	manager := auth.New(pool)
 	manager.Register(mux)
+	registerGrafana(root, mux, manager)
 	registry := storage.Registry{Pool: pool}
 	registry.Vault, _ = secrets.New(os.Getenv("SESSION_SECRET"))
 	hub := realtime.NewHub()

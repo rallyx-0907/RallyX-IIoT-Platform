@@ -122,7 +122,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
     if (smokeOnly) {
       const statuses = await browser.eval(async () => Promise.all(['/assets/tree', '/connections', '/devices', '/templates', '/tags', '/dashboard'].map(async path => (await fetch('/api/v1' + path)).status)));
       assert.ok(statuses.every(status => status === 200));
-      for (const [hash, title] of [['dashboards', 'Dashboards'], ['assets', 'Assets'], ['connections', 'Connections'], ['devices', 'Devices'], ['templates', 'Templates'], ['configuration', 'Tag Configuration'], ['live', 'Live Data'], ['history', 'History & Trends'], ['rules', 'Rules'], ['alarms', 'Alarms'], ['system', 'System'], ['overview', 'Overview']]) {
+      for (const [hash, title] of [['dashboards', 'Dashboards'], ['widgets', 'Data widgets'], ['assets', 'Assets'], ['connections', 'Connections'], ['devices', 'Devices'], ['templates', 'Templates'], ['configuration', 'Tag Configuration'], ['live', 'Live Data'], ['history', 'History & Trends'], ['rules', 'Rules'], ['alarms', 'Alarms'], ['system', 'System'], ['overview', 'Overview']]) {
         await browser.page(hash, title); await pause(200);
         assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
       }
@@ -130,7 +130,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       if (process.env.RALLYX_VI_CHECK === 'true') {
         await t.test('Vietnamese interface, persisted choice and formatted hierarchy', async () => {
           await browser.fill('Ngôn ngữ / Language', 'vi');
-          for (const [hash, title] of [['dashboards', 'Bảng điều khiển'], ['overview', 'Tổng quan'], ['assets', 'Tài sản'], ['connections', 'Kết nối'], ['devices', 'Thiết bị'], ['templates', 'Mẫu thiết bị'], ['configuration', 'Cấu hình tín hiệu'], ['live', 'Dữ liệu trực tiếp'], ['history', 'Lịch sử & xu hướng'], ['rules', 'Quy tắc'], ['alarms', 'Cảnh báo'], ['system', 'Hệ thống']]) {
+          for (const [hash, title] of [['dashboards', 'Bảng điều khiển'], ['widgets', 'Ô dữ liệu'], ['overview', 'Tổng quan'], ['assets', 'Tài sản'], ['connections', 'Kết nối'], ['devices', 'Thiết bị'], ['templates', 'Mẫu thiết bị'], ['configuration', 'Cấu hình tín hiệu'], ['live', 'Dữ liệu trực tiếp'], ['history', 'Lịch sử & xu hướng'], ['rules', 'Quy tắc'], ['alarms', 'Cảnh báo'], ['system', 'Hệ thống']]) {
             await browser.page(hash, title); await pause(100);
             assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
           }
@@ -195,7 +195,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
           const widgets = await browser.eval(async () => (await fetch('/api/v1/dashboard')).json());
           const boardId = widgets.find(widget => widget.type === 'level' && widget.board_id)?.board_id;
           assert.ok(boardId, 'configured mixed dashboard exists');
-          await browser.page('dashboards', 'Dashboards');
+          await browser.page('widgets', 'Data widgets');
           await browser.fill('Dashboard', boardId);
           await until(() => browser.eval(() => document.querySelectorAll('.dashboard-widget').length >= 4), 'mixed dashboard widgets');
           await browser.fill('Ngôn ngữ / Language', 'vi');
@@ -283,7 +283,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       assert.ok(saved.some(widget => widget.title === `UI status ${stamp}` && widget.tag_id === runTagID && widget.type === 'status'));
     });
     await t.test('named dashboards persist numeric gauge settings and widget edits', async () => {
-      await browser.page('dashboards', 'Dashboards');
+      await browser.page('widgets', 'Data widgets');
       await browser.click('Create dashboard…');
       await browser.fill('Dashboard name', `UI board ${stamp}`);
       await browser.click('Create dashboard');

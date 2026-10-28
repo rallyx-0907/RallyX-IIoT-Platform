@@ -20,6 +20,8 @@ Giao diện mới có biên tập nhiều điều kiện, thử trước khi lư
 
 ## Bảng điều khiển và tín hiệu
 
+Đã tích hợp Grafana thật làm mục Bảng điều khiển chính. Đăng nhập RallyX một lần; quản trị được tạo/sửa dashboard, vận hành/người xem chỉ xem. Grafana chỉ đọc các view báo cáo bằng tài khoản riêng, không kết nối tới thiết bị. Có dashboard mẫu nhiều panel với bộ chọn tài sản/thiết bị/tín hiệu, chọn thời gian và cập nhật tự động. Các ô tự xây trước đó được giữ ở mục Ô dữ liệu. Đã kiểm tra truy vấn, quyền, đăng xuất, dữ liệu tiếp tục thu thập khi Grafana dừng và khôi phục dashboard từ backup. Xem `grafana.md`; đây vẫn là cài đặt local, chưa có cô lập khách hàng SaaS.
+
 Đã có mục Bảng điều khiển riêng, tạo nhiều bảng có tên theo tài khoản và lưu các ô giá trị/trạng thái/xu hướng/đồng hồ/thanh mức theo kiểu dữ liệu. Hỗ trợ sửa, thứ tự, độ rộng, đơn vị, số lẻ và dải hiển thị. Cấu hình tín hiệu có bộ lọc thiết bị, tìm tên/mã/địa chỉ, kiểu dữ liệu và phân trang 25 dòng. Có bảng mẫu `Bàn thử Modbus Slave` đọc slave Windows hiện có. Xem `dashboard-guide.vi.md`.
 
 ## Những gì còn phải nghiệm thu

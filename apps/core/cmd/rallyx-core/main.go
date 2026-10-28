@@ -18,6 +18,7 @@ import (
 	"rallyx.local/core/internal/auth"
 	"rallyx.local/core/internal/mqtt"
 	"rallyx.local/core/internal/realtime"
+	"rallyx.local/core/internal/storage"
 	"rallyx.local/core/internal/telemetry"
 	"rallyx.local/core/migrations"
 )
@@ -91,6 +92,11 @@ func run(ctx context.Context) error {
 	}
 	if err := auth.Bootstrap(startup, pool, os.Getenv("ADMIN_USERNAME"), os.Getenv("ADMIN_PASSWORD")); err != nil {
 		return err
+	}
+	if password := os.Getenv("GRAFANA_READER_PASSWORD"); password != "" {
+		if err := storage.ConfigureGrafanaReader(startup, pool, storage.GrafanaReaderRole, password); err != nil {
+			return err
+		}
 	}
 	hub := realtime.NewHub()
 	engine := &telemetry.Engine{Pool: pool, Broadcast: hub.Broadcast}

@@ -5,6 +5,7 @@ import { NavIcon } from './components/NavIcon';
 import { AuthForm } from './components/AuthForm';
 import { usePlatform } from './stores/usePlatform';
 import { Overview } from './pages/Overview';
+import { Grafana } from './pages/Grafana';
 import { DashboardWidgets } from './components/DashboardWidgets';
 import { Assets } from './pages/Assets';
 import { History } from './pages/History';
@@ -20,6 +21,7 @@ import type { User } from './types/platform';
 
 const pages = [
   ['dashboards', '', 'Dashboards', 'Build dashboards from your devices and datapoints.'],
+  ['widgets', '', 'Data widgets', 'Simple saved widgets from the previous dashboard editor.'],
   ['overview', '◫', 'Overview', 'Your local operations, at a glance.'],
   ['assets', '▦', 'Assets', 'Equipment, configured tags, and operating metrics.'],
   ['live', '⌁', 'Live Data', 'Current values and quality from the field.'],
@@ -69,7 +71,8 @@ export function App() {
           {current[0] === 'overview' && <Overview data={data} user={user} offline={connection === 'offline'} onAsset={id => { setSelected(id); navigate('assets'); }} onAlarms={() => navigate('alarms')} onAck={acknowledge} />}
           {current[0] === 'assets' && <Assets data={data} selected={selected} onSelect={setSelected} offline={connection === 'offline'} user={user} onRefresh={refresh} />}
           {current[0] === 'live' && <LiveData data={data} offline={connection === 'offline'} />}
-          {current[0] === 'dashboards' && <DashboardWidgets offline={connection === 'offline'} />}
+          {current[0] === 'dashboards' && <Grafana />}
+          {current[0] === 'widgets' && <DashboardWidgets offline={connection === 'offline'} />}
           {current[0] === 'history' && <History data={data} />}
           {current[0] === 'alarms' && <Alarms data={data} user={user} onAck={acknowledge} />}
           {current[0] === 'configuration' && <Tags user={user} onRefresh={refresh} />}

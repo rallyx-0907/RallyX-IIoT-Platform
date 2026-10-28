@@ -1,0 +1,609 @@
+{
+  "uid": "rallyx-overview",
+  "title": "RallyX · Giám sát dữ liệu thiết bị",
+  "tags": [
+    "RallyX",
+    "IIoT"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "5s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "asset",
+        "label": "Tài sản",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "rallyx-reporting"
+        },
+        "definition": "SELECT DISTINCT asset_name AS __text,asset_id AS __value FROM rallyx_reporting.tag_catalog WHERE NOT archived UNION ALL SELECT 'Chưa có tài sản','__none' WHERE NOT EXISTS(SELECT 1 FROM rallyx_reporting.tag_catalog WHERE NOT archived) ORDER BY __text",
+        "query": "SELECT DISTINCT asset_name AS __text,asset_id AS __value FROM rallyx_reporting.tag_catalog WHERE NOT archived UNION ALL SELECT 'Chưa có tài sản','__none' WHERE NOT EXISTS(SELECT 1 FROM rallyx_reporting.tag_catalog WHERE NOT archived) ORDER BY __text",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "sort": 1,
+        "skipUrlSync": false
+      },
+      {
+        "name": "device",
+        "label": "Thiết bị",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "rallyx-reporting"
+        },
+        "definition": "SELECT DISTINCT device_name AS __text,device_id AS __value FROM rallyx_reporting.tag_catalog WHERE NOT archived AND asset_id IN (${asset:sqlstring}) UNION ALL SELECT 'Chưa có thiết bị','__none' WHERE NOT EXISTS(SELECT 1 FROM rallyx_reporting.tag_catalog WHERE NOT archived AND asset_id IN (${asset:sqlstring})) ORDER BY __text",
+        "query": "SELECT DISTINCT device_name AS __text,device_id AS __value FROM rallyx_reporting.tag_catalog WHERE NOT archived AND asset_id IN (${asset:sqlstring}) UNION ALL SELECT 'Chưa có thiết bị','__none' WHERE NOT EXISTS(SELECT 1 FROM rallyx_reporting.tag_catalog WHERE NOT archived AND asset_id IN (${asset:sqlstring})) ORDER BY __text",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "sort": 1,
+        "skipUrlSync": false
+      },
+      {
+        "name": "tag",
+        "label": "Tín hiệu",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "rallyx-reporting"
+        },
+        "definition": "SELECT device_name||' / '||tag_name AS __text,tag_id AS __value FROM rallyx_reporting.tag_catalog WHERE NOT archived AND device_id IN (${device:sqlstring}) UNION ALL SELECT 'Chưa có tín hiệu','__none' WHERE NOT EXISTS(SELECT 1 FROM rallyx_reporting.tag_catalog WHERE NOT archived AND device_id IN (${device:sqlstring})) ORDER BY __text",
+        "query": "SELECT device_name||' / '||tag_name AS __text,tag_id AS __value FROM rallyx_reporting.tag_catalog WHERE NOT archived AND device_id IN (${device:sqlstring}) UNION ALL SELECT 'Chưa có tín hiệu','__none' WHERE NOT EXISTS(SELECT 1 FROM rallyx_reporting.tag_catalog WHERE NOT archived AND device_id IN (${device:sqlstring})) ORDER BY __text",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "sort": 1,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Thiết bị đang theo dõi",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT count(DISTINCT device_id) AS \"Thiết bị\" FROM rallyx_reporting.tag_catalog WHERE enabled AND NOT archived AND asset_id IN (${asset:sqlstring})",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Tín hiệu chất lượng tốt",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT count(*) AS \"Tốt\" FROM rallyx_reporting.current_values WHERE quality='GOOD' AND tag_id IN (${tag:sqlstring})",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Cảnh báo đang mở",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT count(*) AS \"Cảnh báo\" FROM rallyx_reporting.alarms WHERE cleared_at IS NULL AND asset_id IN (${asset:sqlstring})",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Xu hướng nhiều tín hiệu · tối đa 20 chuỗi",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT $__timeGroupAlias(sampled_at,$__interval),avg(numeric_value) AS value,tag_name||' · '||device_name AS metric FROM rallyx_reporting.samples WHERE $__timeFilter(sampled_at) AND quality='GOOD' AND numeric_value IS NOT NULL AND tag_id IN (SELECT tag_id FROM rallyx_reporting.tag_catalog WHERE tag_id IN (${tag:sqlstring}) ORDER BY tag_id LIMIT 20) GROUP BY 1,3 ORDER BY 1 LIMIT 6000",
+          "rawQuery": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": false
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 5,
+      "type": "gauge",
+      "title": "Đồng hồ · tín hiệu số đầu tiên đã chọn",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT numeric_value AS value,tag_name AS metric FROM rallyx_reporting.current_values WHERE tag_id IN (${tag:sqlstring}) AND quality='GOOD' AND numeric_value IS NOT NULL ORDER BY tag_id LIMIT 1",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "So sánh giá trị hiện tại · tối đa 20 tín hiệu",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 8,
+        "y": 13,
+        "w": 10,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT tag_name||' · '||device_name AS metric,numeric_value AS value FROM rallyx_reporting.current_values WHERE tag_id IN (${tag:sqlstring}) AND quality='GOOD' AND numeric_value IS NOT NULL ORDER BY tag_id LIMIT 20",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Phân bố chất lượng dữ liệu",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 18,
+        "y": 13,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT quality AS metric,count(*) AS value FROM rallyx_reporting.current_values WHERE tag_id IN (${tag:sqlstring}) GROUP BY quality ORDER BY quality",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "values": [
+            "value"
+          ]
+        },
+        "displayLabels": [
+          "name",
+          "percent"
+        ]
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Giá trị · đơn vị · chất lượng · thời điểm",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT device_name AS \"Thiết bị\",tag_name AS \"Tín hiệu\",value_text AS \"Giá trị\",unit AS \"Đơn vị\",quality AS \"Chất lượng\",sampled_at AS \"Thời điểm\" FROM rallyx_reporting.current_values WHERE tag_id IN (${tag:sqlstring}) ORDER BY device_name,tag_name LIMIT 200",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 9,
+      "type": "state-timeline",
+      "title": "Lịch sử Boolean · 1 / 0 · tối đa 10 tín hiệu",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT sampled_at AS time,CASE WHEN quality='GOOD' THEN CASE WHEN boolean_value THEN 1 ELSE 0 END END AS value,tag_name||' · '||device_name AS metric FROM rallyx_reporting.samples WHERE $__timeFilter(sampled_at) AND boolean_value IS NOT NULL AND tag_id IN (SELECT tag_id FROM rallyx_reporting.tag_catalog WHERE tag_id IN (${tag:sqlstring}) AND datatype='boolean' ORDER BY tag_id LIMIT 10) ORDER BY sampled_at LIMIT 4000",
+          "rawQuery": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "0 / Tắt",
+                  "color": "gray"
+                },
+                "1": {
+                  "text": "1 / Bật",
+                  "color": "blue"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "auto",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Cảnh báo từ Rule Engine",
+      "description": "Dữ liệu đọc từ RallyX. Có thể lưu bản sao để tùy chỉnh.",
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "rallyx-reporting"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "rallyx-reporting"
+          },
+          "rawSql": "SELECT asset_name AS \"Tài sản\",rule_name AS \"Quy tắc\",severity AS \"Mức độ\",message AS \"Nội dung\",activated_at AS \"Kích hoạt\",acknowledged_at AS \"Xác nhận\" FROM rallyx_reporting.alarms WHERE cleared_at IS NULL AND asset_id IN (${asset:sqlstring}) ORDER BY activated_at DESC LIMIT 100",
+          "rawQuery": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "interval": "5s",
+      "maxDataPoints": 300
+    }
+  ]
+}

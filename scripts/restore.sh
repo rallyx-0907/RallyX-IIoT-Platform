@@ -128,6 +128,22 @@ PY
 bundle=$tmp/unpacked
 [[ -s $bundle/database.dump && -s $bundle/node-red/data.tar.gz && -f $bundle/.env && -f $bundle/compose.yaml && -f $bundle/config/mosquitto/mosquitto.conf && -f $bundle/connectors/node-red/settings.js ]] || fail 'archive is missing required recovery files'
 compgen -G "$bundle/connectors/node-red/flows/*.json" >/dev/null || fail 'archive contains no Node-RED flow files'
+python3 - "$bundle/grafana/data.tar.gz" <<'PY'
+import pathlib, sys, tarfile
+archive = pathlib.Path(sys.argv[1])
+if archive.exists():
+    try:
+        with tarfile.open(archive, "r:gz") as tf:
+            seen = set()
+            for member in tf.getmembers():
+                name = member.name
+                while name.startswith("./"): name = name[2:]
+                path = pathlib.PurePosixPath(name)
+                if path.is_absolute() or ".." in path.parts or name in seen or not (member.isfile() or member.isdir()): raise ValueError
+                seen.add(name)
+    except (OSError, ValueError, tarfile.TarError):
+        print("restore: Grafana archive has unsafe paths or links", file=sys.stderr); sys.exit(1)
+PY
 [[ $(grep -cx 'format=2' "$bundle/metadata.txt") -eq 1 ]] || fail 'unsupported archive metadata format'
 source_pg=$(sed -n 's/^postgres_server_version_num=//p' "$bundle/metadata.txt")
 source_ts=$(sed -n 's/^timescaledb_extension_version=//p' "$bundle/metadata.txt")
@@ -136,7 +152,7 @@ source_ts=$(sed -n 's/^timescaledb_extension_version=//p' "$bundle/metadata.txt"
 check_keys() {
   python3 - "$bundle/.env" "$env_file" <<'PY'
 import pathlib, sys
-keys = ("SESSION_SECRET", "NODE_RED_CREDENTIAL_SECRET")
+keys = ("SESSION_SECRET", "NODE_RED_CREDENTIAL_SECRET") + (("GRAFANA_SECRET_KEY", "GRAFANA_READER_PASSWORD") if (pathlib.Path(sys.argv[1]).parent/"grafana/data.tar.gz").exists() else ())
 def read(path):
     found = {}
     for raw in pathlib.Path(path).read_text(encoding="utf-8").splitlines():
@@ -195,7 +211,7 @@ target_pg=$(sed -n '1p' <<<"$target_info"); target_ts=$(sed -n '2p' <<<"$target_
 if [[ $keys_match == false ]]; then
   python3 - "$bundle/.env" "$env_file" <<'PY'
 import os, pathlib, sys, tempfile
-keys = ("SESSION_SECRET", "NODE_RED_CREDENTIAL_SECRET")
+keys = ("SESSION_SECRET", "NODE_RED_CREDENTIAL_SECRET") + (("GRAFANA_SECRET_KEY", "GRAFANA_READER_PASSWORD") if (pathlib.Path(sys.argv[1]).parent/"grafana/data.tar.gz").exists() else ())
 def assignments(path):
     out = {}
     for raw in pathlib.Path(path).read_text(encoding="utf-8").splitlines():
@@ -232,8 +248,9 @@ PY
 fi
 
 was_connectivity=false; grep -qx connectivity <<<"$running" && was_connectivity=true || true
+was_grafana=false; grep -qx grafana <<<"$running" && was_grafana=true || true
 to_stop=()
-for service in core connectivity node-red; do grep -qx "$service" <<<"$running" && to_stop+=("$service") || true; done
+for service in core connectivity node-red grafana; do grep -qx "$service" <<<"$running" && to_stop+=("$service") || true; done
 if ((${#to_stop[@]})); then compose stop "${to_stop[@]}" >/dev/null || fail 'could not stop application services cleanly'; fi
 
 mkdir -p "$root/config/mosquitto" "$root/connectors/node-red/flows"
@@ -257,6 +274,11 @@ if compose exec -T db sh -ec 'PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 
 compose run --entrypoint sh --no-deps --rm -T node-red -ec 'find /data -mindepth 1 -maxdepth 1 ! -name settings.js -exec rm -rf -- {} +; tar -C /data -xzf -' < "$bundle/node-red/data.tar.gz" || fail 'Node-RED volume restore failed; application services remain stopped'
 
 compose up -d --wait db core node-red >/dev/null || fail 'restored database/Core/Node-RED did not become healthy'
+if [[ -f $bundle/grafana/data.tar.gz ]]; then
+  compose --profile grafana run --entrypoint sh --user 0 --no-deps --rm -T grafana -ec 'find /var/lib/grafana -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +; tar -C /var/lib/grafana -xzf -; chown -R 472:0 /var/lib/grafana' < "$bundle/grafana/data.tar.gz" || fail 'Grafana data restore failed'
+  was_grafana=true
+fi
+if [[ $was_grafana == true ]]; then compose --profile grafana up -d --wait grafana >/dev/null || fail 'restored Grafana did not become healthy'; fi
 if [[ $was_connectivity == true ]]; then
   compose --profile connectivity up -d --wait connectivity >/dev/null || fail 'restored connectivity service did not become healthy'
 fi

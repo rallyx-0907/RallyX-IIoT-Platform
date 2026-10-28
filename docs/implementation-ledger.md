@@ -2,6 +2,14 @@
 
 Plan: `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md`.
 
+## Approved real Grafana integration 2026-10-28
+
+User approved local Grafana with a single RallyX login and read-only business-data access. Added Grafana13.3.0 profile/persistent volume, Core-authenticated `/grafana/` proxy, reporting views and restricted reader, metadata-driven ten-panel dashboard, main iframe page and full editor link. Admin maps to Editor; operator/viewer map to Viewer. Anonymous/basic auth and independent Grafana session cookies are disabled. Existing native widgets remain on `#widgets`; Core/ingestion/rules do not depend on Grafana health. The official image was verified against upstream release metadata and pulled by pinned version/digest.
+
+Verification: complete real PostgreSQL/broker Go suite; 78 Web tests/build; retained platform Chromium workflows11/11; real Grafana all-ten-panel queries, SQL credential-read/write denial, Editor save/reload, Viewer write denial, forged-header/anonymous/logout rejection and rendered embedded browser data pass on isolated preview and operating installation. Outage rehearsal stopped only preview Grafana and observed Core healthy with advancing accepted telemetry. Consistent SQLite/WAL backup and full preview restore preserve a user-created dashboard; legacy isolated backup/restore safeguard suite also passes. Fresh review has no critical/important findings. During the real-broker suite, a pre-existing late ACK on Paho's closed channel was exposed; guarded shutdown/ACK handling and regressions prevent a Core panic while retaining QoS redelivery semantics.
+
+Deployed Core `9989246d7ece`, Web `3ceabc3555ba` (bundle `index-D6-mApm-.js`) and official Grafana `sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205` after private backup; prior images retained as `pre-grafana-20261028`. Seven operating services healthy; Windows returns Web health200 and unauthenticated Grafana401. Rendered operating dashboard shows three devices,14 GOOD signals and continuing live values. Preview stopped after verification. See `grafana.md`; Grafana third-party menus can remain English. This is a local shared installation, not SaaS tenant isolation or sustained-load/release acceptance.
+
 ## Dashboard customization and device-scoped signals 2026-10-28
 
 User requested multiple dashboards for heterogeneous datapoints and manageable device-scoped signal configuration. Added named per-user boards (migration006 retains legacy widgets on the default board), a dedicated navigation entry, numeric dial/level widgets, settings/editing/order/width controls and semantic Boolean displays. Device filter, text/datatype search and 25-row paging keep the signal list bounded; creation inherits selected device scope.

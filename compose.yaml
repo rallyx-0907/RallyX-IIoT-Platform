@@ -81,6 +81,8 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?Set session secret}
       CONNECTIVITY_TOKEN: ${CONNECTIVITY_TOKEN:-}
       CONNECTIVITY_URL: http://connectivity:8090
+      GRAFANA_URL: http://grafana:3000
+      GRAFANA_READER_PASSWORD: ${GRAFANA_READER_PASSWORD:-}
       DEMO_SEED: ${DEMO_SEED:-true}
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
     depends_on:
@@ -116,6 +118,32 @@ services:
       timeout: 5s
       retries: 10
 
+  grafana:
+    <<: *runtime
+    profiles: [grafana]
+    image: grafana/grafana:13.3.0
+    environment:
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:8080/grafana/}
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:-}
+      POSTGRES_DB: ${POSTGRES_DB:-rallyx}
+      GRAFANA_READER_PASSWORD: ${GRAFANA_READER_PASSWORD:-}
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - 'test -n "$$GRAFANA_READER_PASSWORD" && test -n "$$GF_SECURITY_SECRET_KEY" || { echo "Run node scripts/setup-grafana.mjs first" >&2; exit 1; }; exec /run.sh'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:3000/api/health]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
   web:
     <<: *runtime
     image: rallyx/web:${RALLYX_VERSION:-0.1.0}
@@ -133,6 +161,7 @@ services:
       retries: 5
 
 volumes:
+  grafana-data:
   db-data:
   mqtt-data:
   mqtt-log:
