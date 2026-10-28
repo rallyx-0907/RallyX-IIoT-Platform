@@ -2,6 +2,14 @@
 
 Plan: `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md`.
 
+## Demo continuation 2026-10-28
+
+- Fixed root dev/up commands and installation instructions to enable the connectivity profile required by dynamic device producers; added `demo.md` with simulator presentation, read-only field setup and WSL access steps.
+- Operating installation: six services healthy, 43,919 historical samples at inspection, seven runtime sessions and four GOOD tags. Windows Web health returns HTTP 200 at `http://172.27.165.200:8080`. A hidden WSL keepalive maintains this workstation session; this is not reboot acceptance.
+- Read-only operating Chromium smoke passes existing login, six APIs and eleven pages. Local root test, lint and build pass (47 frontend tests; three service-dependent local connectivity skips). Real DB/broker backend integration separately passes; private log `.tools/integration-20261028.log`.
+- Existing isolated loopback preview passes Simulator API E2E plus full Chromium read-only Modbus TCP fixture workflows (9/9): hierarchy/template/devices/tags, diagnostics/live/history, invalid and 100-tag CSV, alarm lifecycle and dashboard persistence. Preview stopped with volumes retained. No operating application image rebuild, credential change or schema migration.
+- Remaining: physical Modbus/RTU equipment, detailed rule engine, offline install, reboot, update/rollback and full release gates. Simulator acceptance does not certify physical equipment.
+
 ## Current continuation — local extensibility
 
 - Final UI group verification 2026-10-24: root `npm.cmd test` passes (3 Node-RED contract tests, 21 connectivity/contract tests with 3 service-dependent local skips, local Go suite including pure rules, 47 frontend tests); root lint/build pass. Expanded browser acceptance 9/9, zero-hardware API E2E, and full preview restart pass. Latest Core image rehearsed migrations 001→002→003 on the restored baseline copy: samples retained 23,668→23,680, all four demo simulator defaults adopted. Backup/restore harness now passes on two separate deployment roots, including metadata/history/Node-RED volume, invalid key/tamper rejection and source-root isolation. Actual operating-instance coordinated rollout follows these verified gates; no operating database restore was performed.

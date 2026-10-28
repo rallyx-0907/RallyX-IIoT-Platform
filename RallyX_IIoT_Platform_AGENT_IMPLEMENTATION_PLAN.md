@@ -889,7 +889,7 @@ rallyx-iiot-platform/
 - [x] Run backend unit tests.
 - [x] Run frontend tests.
 - [ ] Run integration tests against full compose stack.
-- [ ] Run zero-hardware E2E scenario.
+- [x] Run zero-hardware E2E scenario.
 - [x] Run Modbus E2E scenario.
 - [ ] Run offline installer E2E scenario.
 - [ ] Run backup/restore E2E scenario.
@@ -1044,6 +1044,8 @@ An agent must not declare the MVP complete until all gates below are checked.
 
 # 10. Progress Log
 
+2026-10-28 demo readiness: fixed npm dev/up and quick-start instructions to enable the required connectivity profile. Added `docs/demo.md`. Operating stack six services healthy, four GOOD tags and Windows Web health HTTP 200; read-only Chromium login/API/eleven-page smoke passes. Separate preview Simulator API E2E and Chromium Modbus TCP fixture workflows pass (9/9); preview stopped afterward. Root tests (47 frontend), lint/build and real DB/broker backend integration pass. Physical hardware/offline/reboot and remaining V1 gates stay open.
+
 2026-10-24 approved operating upgrade: deployed the exact rehearsed Core/Web/connectivity images to the existing port 8080 after explicit user approval. All six services healthy; unchanged admin credentials pass real Chromium login, six configuration APIs and eleven pages pass read-only smoke. Windows URL returns HTTP 200. Migrations 001/002/003 applied; 26,167 historical samples and seven runtime sessions present, four current tags GOOD. Pre-upgrade checksummed snapshot and old images retained. Full V1 release gates remain open.
 
 2026-10-24 backup/restore: secure versioned/checksummed bundles and explicit-root confirmed restore verified on two independent copied installations. Key mismatch and tampered payloads reject before effects; asset metadata, Timescale telemetry and Node-RED volume/flows recover while target DB credentials/source config remain intact. Timescale pre/post hooks and strict restore errors are enforced. Update/rollback/offline/physical-host gates remain open; see `docs/backup-restore.md`.
@@ -1086,7 +1088,7 @@ Add one line after each completed task group. Keep notes short and factual.
 - [x] MQTT contract is versioned and documented.
 - [x] DB migrations reproduce a clean install.
 - [ ] Offline installer is verified without Internet.
-- [ ] Demo works with Simulator.
+- [x] Demo works with Simulator.
 - [ ] Demo works with at least one Modbus source.
 - [ ] Backup/restore works on a second clean machine.
 - [ ] Release packages exist for amd64 and arm64.

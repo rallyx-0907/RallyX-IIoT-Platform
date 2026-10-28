@@ -18,11 +18,13 @@ Requires Docker Engine + Compose v2 on Linux. Build-time dependency downloads re
 cp .env.example .env
 # Replace every CHANGE_ME value with a strong, unique value.
 docker compose config --quiet
-docker compose up --build -d --wait
+docker compose --profile connectivity up --build -d --wait
 docker compose ps
 ```
 
 Open `http://localhost:8080`. Keep the default loopback binding until remote access is configured deliberately. This repository is under implementation; consult the roadmap and [ledger](docs/implementation-ledger.md) for verified status. It is not yet a validated V1.0 release.
+
+The connectivity profile is required for Simulator, MQTT and Modbus device data. `npm run dev` and `npm run up` enable it automatically. Keep `SIMULATOR_ENABLED=false` to avoid a second producer. See the [demo walkthrough](docs/demo.md) for live values, history and alarms.
 
 ## Development commands
 

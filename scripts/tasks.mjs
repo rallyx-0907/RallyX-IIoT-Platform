@@ -24,8 +24,8 @@ const core = resolve(root, 'apps/core');
 const web = resolve(root, 'apps/web');
 const task = process.argv[2];
 switch (task) {
-  case 'dev': run('docker', ['compose', 'up', '--build', '--wait']); break;
-  case 'up': run('docker', ['compose', 'up', '-d', '--wait']); break;
+  case 'dev': run('docker', ['compose', '--profile', 'connectivity', 'up', '--build', '--wait']); break;
+  case 'up': run('docker', ['compose', '--profile', 'connectivity', 'up', '-d', '--wait']); break;
   case 'down': run('docker', ['compose', 'down']); break;
   case 'logs': run('docker', ['compose', 'logs', '-f', '--tail=100']); break;
   case 'test':

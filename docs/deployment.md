@@ -16,7 +16,7 @@ Set `HTTP_BIND` deliberately to expose Web on a LAN. Put remote access behind TL
 
 Copy `.env.example` to `.env` and replace all `CHANGE_ME` entries. Passwords in the database URL must be URL-safe; generated hexadecimal passwords are recommended. Never commit `.env`. Keep the session and Node-RED credential secrets for restore.
 
-Validate with `docker compose config --quiet`, start with `docker compose up --build -d --wait`, and inspect `docker compose ps`. Restart policies recover services when the container engine starts after reboot. A real reboot test remains a release gate.
+Validate with `docker compose --profile connectivity config --quiet`, start with `docker compose --profile connectivity up --build -d --wait`, and inspect `docker compose ps`. The connectivity profile runs the configured Simulator, MQTT and Modbus workers; omitting it on a fresh installation leaves those devices without a producer. Keep the optional Node-RED simulator disabled to prevent duplicate telemetry. Restart policies recover services when the container engine starts after reboot. A real reboot test remains a release gate.
 
 ## Development
 
