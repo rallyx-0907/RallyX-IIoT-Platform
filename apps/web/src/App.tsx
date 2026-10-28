@@ -1,3 +1,4 @@
+import { t as translate, useLanguage, LanguageSelector, getLocale } from './i18n';
 import { useEffect, useState } from 'react';
 import { ApiError, errorMessage, post, request } from './api/client';
 import { NavIcon } from './components/NavIcon';
@@ -31,6 +32,8 @@ const pages = [
 ];
 
 export function App() {
+  const language = useLanguage();
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
   const [user, setUser] = useState<User | null>();
   const [startupError, setStartupError] = useState('');
   const [page, setPage] = useState(location.hash.slice(1) || 'overview');
@@ -50,17 +53,17 @@ export function App() {
   const acknowledge = async (id: number) => {
     try { await post(`/alarms/${id}/ack`, {}); await platform.refresh(); } catch (error) { setActionError(errorMessage(error)); }
   };
-  if (user === undefined) return <div className="loading-screen" role="status">Connecting to your workspace…</div>;
+  if (user === undefined) return <div className="loading-screen" role="status">{translate("Connecting to your workspace…")}</div>;
   if (!user || user.must_change_password) return <AuthForm key={user?.id || 'login'} user={user} onUser={setUser} initialError={startupError} />;
   const current = pages.find(item => item[0] === page) || pages[0];
   const { data, loading, error, connection, refresh } = platform;
   return <div className="shell">
-    <aside><a className="wordmark" href="#overview" aria-label="RallyX home">R<span>✦</span><b>RallyX</b></a><small className="brand-caption">IIoT PLATFORM</small><p className="nav-label">WORKSPACE</p><nav>{pages.map(([id, , label]) => <a key={id} href={`#${id}`} title={label} aria-label={label} onClick={() => navigate(id)} aria-current={current[0] === id ? 'page' : undefined}><span><NavIcon page={id} /></span><b>{label}</b>{id === 'alarms' && data.alarms.length > 0 && <em>{data.alarms.length}</em>}</a>)}</nav><footer><span className="local-dot" /> LOCAL OPERATIONS<br /><span>Read-only field integration</span><div className="profile"><i>{user.username.slice(0, 1).toUpperCase()}</i><div><strong>{user.username}</strong><small>{user.role}</small></div><button title="Sign out" aria-label="Sign out" onClick={async () => { try { await post('/auth/logout', {}); setUser(null); } catch (error) { setActionError(errorMessage(error)); } }}>↪</button></div></footer></aside>
-    <main><header><span className="breadcrumb">Workspace <span>/</span> <strong>{current[2]}</strong></span><div className="header-right"><span className={`connection ${connection}`}><i />{connection === 'live' ? 'Live connection' : connection === 'offline' ? 'Disconnected · last known data' : 'Connecting realtime'}</span><span className="date-label">{new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div></header>
-      <section><div className="page-heading"><div><p className="eyebrow">MONITOR · UNDERSTAND · ACT</p><h1>{current[2]}</h1><p className="muted">{current[3]}</p></div><button className="secondary" onClick={() => { void refresh(); }} disabled={loading}>↻ Refresh</button></div>
-        {(error || actionError) && <p className="error" role="alert">{actionError || error}</p>}
-        {connection === 'offline' && <p className="warning">Realtime connection interrupted. Values are last known readings; checking for a connection.</p>}
-        {loading ? <div className="loading-panel" role="status">Loading platform data…</div> : <>
+    <aside><a className="wordmark" href="#overview" aria-label={translate("RallyX home")}>R<span>✦</span><b>RallyX</b></a><small className="brand-caption">{translate("IIoT PLATFORM")}</small><p className="nav-label">{translate("WORKSPACE")}</p><nav>{pages.map(([id, , label]) => <a key={id} href={`#${id}`} title={translate(label)} aria-label={translate(label)} onClick={() => navigate(id)} aria-current={current[0] === id ? 'page' : undefined}><span><NavIcon page={id} /></span><b>{translate(label)}</b>{id === 'alarms' && data.alarms.length > 0 && <em>{data.alarms.length}</em>}</a>)}</nav><footer><span className="local-dot" /> {translate("LOCAL OPERATIONS")}<br /><span>{translate("Read-only field integration")}</span><div className="profile"><i>{user.username.slice(0, 1).toUpperCase()}</i><div><strong>{user.username}</strong><small>{translate(user.role)}</small></div><button title={translate("Sign out")} aria-label={translate("Sign out")} onClick={async () => { try { await post('/auth/logout', {}); setUser(null); } catch (error) { setActionError(errorMessage(error)); } }}>↪</button></div></footer></aside>
+    <main><header><span className="breadcrumb">{translate("Workspace")}  <span>/</span> <strong>{translate(current[2])}</strong></span><div className="header-right"><LanguageSelector /><span className={`connection ${connection}`}><i />{connection === 'live' ? translate("Live connection") : connection === 'offline' ? translate("Disconnected · last known data") : translate("Connecting realtime")}</span><span className="date-label">{new Date().toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</span></div></header>
+      <section><div className="page-heading"><div><p className="eyebrow">{translate("MONITOR · UNDERSTAND · ACT")}</p><h1>{translate(current[2])}</h1><p className="muted">{translate(current[3])}</p></div><button className="secondary" onClick={() => { void refresh(); }} disabled={loading}>{translate("↻ Refresh")}</button></div>
+        {(error || actionError) && <p className="error" role="alert">{translate(actionError || error)}</p>}
+        {connection === 'offline' && <p className="warning">{translate("Realtime connection interrupted. Values are last known readings; checking for a connection.")}</p>}
+        {loading ? <div className="loading-panel" role="status">{translate("Loading platform data…")}</div> : <>
           {current[0] === 'overview' && <Overview data={data} user={user} offline={connection === 'offline'} onAsset={id => { setSelected(id); navigate('assets'); }} onAlarms={() => navigate('alarms')} onAck={acknowledge} />}
           {current[0] === 'assets' && <Assets data={data} selected={selected} onSelect={setSelected} offline={connection === 'offline'} user={user} onRefresh={refresh} />}
           {current[0] === 'live' && <LiveData data={data} offline={connection === 'offline'} />}
@@ -73,7 +76,7 @@ export function App() {
           {current[0] === 'templates' && <Templates user={user} />}
           {current[0] === 'system' && <System mode={current[0]} user={user} />}
         </>}
-        <div className="page-foot">RallyX IIoT Platform <span>Local data. Operational clarity.</span></div>
+        <div className="page-foot">{translate("RallyX IIoT Platform")}  <span>{translate("Local data. Operational clarity.")}</span></div>
       </section>
     </main>
   </div>;

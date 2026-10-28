@@ -24,6 +24,8 @@ docker compose ps
 
 Open `http://localhost:8080`. Keep the default loopback binding until remote access is configured deliberately. This repository is under implementation; consult the roadmap and [ledger](docs/implementation-ledger.md) for verified status. It is not yet a validated V1.0 release.
 
+The interface starts in Vietnamese. Choose **Tiếng Việt / English** on the login screen or workspace header; the browser remembers the selection. See [interface languages](docs/localization.md).
+
 The connectivity profile is required for Simulator, MQTT and Modbus device data. `npm run dev` and `npm run up` enable it automatically. Keep `SIMULATOR_ENABLED=false` to avoid a second producer. See the [demo walkthrough](docs/demo.md) for live values, history and alarms.
 
 ## Development commands

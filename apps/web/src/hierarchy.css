@@ -1,0 +1,28 @@
+﻿.asset-tree.hierarchy-panel { display: block; min-width: 0; padding: 20px; }
+.hierarchy-navigation { display: block; margin: 0; }
+.hierarchy-navigation ul { list-style: none; padding: 0; margin: 0; }
+.hierarchy-navigation li { min-width: 0; }
+.hierarchy-navigation .hierarchy-level { display: block; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted, #526377); margin: 0 0 4px; }
+.hierarchy-navigation .hierarchy-site h3 { margin: 0 0 16px; font-size: 16px; overflow-wrap: anywhere; }
+.hierarchy-navigation .hierarchy-areas, .hierarchy-navigation .hierarchy-assets, .hierarchy-navigation .hierarchy-devices { border-left: 1px solid var(--border, #e2e8ef); margin-left: 3px; padding-left: 12px; }
+.hierarchy-area, .hierarchy-asset, .hierarchy-device { margin-top: 16px; }
+.hierarchy-area-name { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.hierarchy-navigation button { width: 100%; min-width: 0; border: 0; border-radius: 6px; background: transparent; padding: 8px; color: inherit; text-align: left; font: inherit; font-size: 14px; cursor: pointer; overflow-wrap: anywhere; }
+.hierarchy-navigation button:hover { background: var(--surface-hover, #eef4f8); }
+.hierarchy-navigation button:focus-visible { outline: 2px solid var(--green, #128360); outline-offset: 2px; }
+.hierarchy-navigation .hierarchy-asset-select.selected { color: var(--green, #128360); background: var(--state-good-bg, #e3f6ec); font-weight: 600; }
+.hierarchy-device-toggle { display: flex; gap: 8px; align-items: baseline; }
+.hierarchy-device-toggle > span:last-child { min-width: 0; }
+.hierarchy-chevron { flex: 0 0 16px; align-self: center; }
+.hierarchy-chevron.is-expanded { transform: rotate(90deg); }
+.hierarchy-navigation .hierarchy-tags { margin: 5px 0 0 14px; border-left: 1px solid var(--border, #e2e8ef); padding-left: 12px; }
+.hierarchy-tag { padding: 8px 0; }
+.hierarchy-tag-name { display: block; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.hierarchy-tag-meta { display: block; margin-top: 3px; font-size: 13px; line-height: 1.5; color: var(--muted, #526377); overflow-wrap: anywhere; }
+.hierarchy-empty { font-size: 14px; color: var(--muted, #526377); padding: 8px 0; }
+.hierarchy-site + .hierarchy-site { border-top: 1px solid var(--border, #e2e8ef); margin-top: 20px; padding-top: 20px; }
+@media (max-width: 850px) { .asset-workspace > .asset-tree.hierarchy-panel { display: block; } }
+.asset-workspace:has(.hierarchy-panel) { grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); }
+@media (max-width: 1200px) { .asset-workspace:has(.hierarchy-panel) { grid-template-columns: 280px minmax(0, 1fr); } }
+@media (max-width: 850px) { .asset-workspace:has(.hierarchy-panel) { grid-template-columns: minmax(0, 1fr); } }
+

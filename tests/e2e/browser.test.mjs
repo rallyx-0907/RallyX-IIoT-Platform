@@ -104,6 +104,9 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
   try {
     await browser.start();
     await browser.send('Page.navigate', { url: base });
+    await browser.text('Đăng nhập RallyX');
+    assert.equal(await browser.eval(() => document.documentElement.lang), 'vi', 'first-run UI defaults to Vietnamese');
+    await browser.fill('Ngôn ngữ / Language', 'en');
     await browser.text('Sign in to RallyX');
     await browser.fill('Username', config.ADMIN_USERNAME);
     await browser.fill('Password', config.ADMIN_PASSWORD);
@@ -124,6 +127,37 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
         assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
       }
       await browser.screenshot('operating-ui');
+      if (process.env.RALLYX_VI_CHECK === 'true') {
+        await t.test('Vietnamese interface, persisted choice and formatted hierarchy', async () => {
+          await browser.fill('Ngôn ngữ / Language', 'vi');
+          for (const [hash, title] of [['overview', 'Tổng quan'], ['assets', 'Tài sản'], ['connections', 'Kết nối'], ['devices', 'Thiết bị'], ['templates', 'Mẫu thiết bị'], ['configuration', 'Cấu hình tín hiệu'], ['live', 'Dữ liệu trực tiếp'], ['history', 'Lịch sử & xu hướng'], ['rules', 'Quy tắc'], ['alarms', 'Cảnh báo'], ['system', 'Hệ thống']]) {
+            await browser.page(hash, title); await pause(100);
+            assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
+          }
+          await browser.send('Page.reload'); await browser.text('Hệ thống');
+          assert.equal(await browser.eval(() => document.documentElement.lang), 'vi');
+          assert.equal(await browser.eval(() => localStorage.getItem('rallyx.language')), 'vi');
+          await browser.page('assets', 'Tài sản'); await browser.text('CẤU TRÚC TÀI SẢN');
+          await until(() => browser.eval(() => document.querySelectorAll('.hierarchy-tag').length > 0), 'configured hierarchy tags');
+          const layout = await browser.eval(() => {
+            const name = document.querySelector('.hierarchy-tag-name'), meta = document.querySelector('.hierarchy-tag-meta');
+            return { name: getComputedStyle(name).display, meta: getComputedStyle(meta).display, separate: meta.getBoundingClientRect().top >= name.getBoundingClientRect().bottom, size: parseFloat(getComputedStyle(name).fontSize), bullets: getComputedStyle(document.querySelector('.hierarchy-tags')).listStyleType };
+          });
+          assert.equal(layout.name, 'block'); assert.equal(layout.meta, 'block'); assert.equal(layout.separate, true); assert.equal(layout.bullets, 'none'); assert.ok(layout.size >= 14);
+          await browser.screenshot('hierarchy-vi-desktop', true);
+          await browser.send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 1, mobile: false });
+          await pause(150);
+          assert.equal(await browser.eval(() => document.documentElement.scrollWidth > innerWidth), false, 'Vietnamese hierarchy fits narrow viewport');
+          assert.notEqual(await browser.eval(() => getComputedStyle(document.querySelector('.hierarchy-panel')).display), 'none');
+          await browser.screenshot('hierarchy-vi-narrow', true);
+          await browser.send('Emulation.clearDeviceMetricsOverride');
+          await browser.page('live', 'Dữ liệu trực tiếp'); await browser.text('Giám sát thiết bị');
+          await browser.fill('Lọc theo thiết bị', config.SIMULATOR_MOTOR_DEVICE_ID || 'demo-motor-device');
+          await browser.screenshot('live-vi-desktop', true);
+          await browser.fill('Ngôn ngữ / Language', 'en'); await browser.text('Live Data');
+          assert.equal(await browser.eval(() => document.documentElement.lang), 'en');
+        });
+      }
       if (process.env.RALLYX_READABILITY_CHECK === 'true') {
         await browser.page('live', 'Live Data'); await browser.text('Equipment monitor');
         await browser.fill('Filter by device', config.SIMULATOR_MOTOR_DEVICE_ID || 'demo-motor-device');

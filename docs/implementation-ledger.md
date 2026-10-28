@@ -2,6 +2,12 @@
 
 Plan: `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md`.
 
+## Vietnamese and hierarchy correction 2026-10-28
+
+User-requested hierarchy formatting and Vietnamese UI are implemented and deployed. The tree separates tag name/key/type, identifies hierarchy levels, supports selection/expansion and remains visible at narrow widths. Vietnamese is the first-run default with a persistent Vietnamese/English selector before and after login. Configured names, string readings and wire values remain intact; dates/runtime units and interface states/errors are localized. See `localization.md` and `vi-hierarchy-plan.md`.
+
+65 frontend tests, TypeScript/build, independent review, isolated Chromium Modbus workflows 9/9 and bilingual preview/operating responsive smoke pass. Final Web-only image deployed with rollback tag retained; six operating services healthy and Windows confirms the new bundle. Preview stopped. Remaining hardware/offline/reboot/rule-engine/release work is unchanged.
+
 ## UI readability correction 2026-10-28
 
 User screenshots identified undersized text, native fieldset/buttons and opaque Live Data boolean values. Fixed shared typography/contrast/control defaults and Device form layout; replaced Live Data's default technical table with device/asset groups, large measurements/units, labelled semantic states and visible stale/offline quality. Optional signal details and filters remain. Corrected invalid legacy text bytes in Devices/Templates and added font-independent SVG navigation icons. See `ui-readability-plan.md` for evidence and deployment image.

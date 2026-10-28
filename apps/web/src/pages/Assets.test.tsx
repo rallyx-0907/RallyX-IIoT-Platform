@@ -4,6 +4,27 @@ import { Assets } from './Assets';
 import type { PlatformData } from '../types/platform';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('shows hierarchy levels with separate tag metadata and accessible selection and collapse', () => {
+  const onSelect = vi.fn();
+  const data = { assets: [], tags: [], alarms: [], events: [], rules: [], tree: [{ id: 's', name: 'Plant', areas: [{ id: 'a', name: 'Utilities', assets: [{ id: 'asset', name: 'Compressor', type: 'equipment', enabled: true, devices: [{ id: 'd', name: 'Meter', connection_id: 'c', enabled: true, status: 'CONNECTED', tags: [{ id: 't', key: 'current', name: 'Current', data_type: 'float64', unit: 'A', enabled: true, realtime_enabled: true, store_history: true }] }] }] }] }] } as PlatformData;
+  render(<Assets data={data} selected="asset" onSelect={onSelect} offline={false} user={{ id: 'u', username: 'viewer', role: 'viewer', must_change_password: false }} onRefresh={async () => {}} />);
+  expect(screen.getByRole('navigation', { name: 'Asset hierarchy' })).toBeTruthy();
+  for (const level of ['Site', 'Area', 'Asset', 'Device']) expect(screen.getByText(level)).toBeTruthy();
+  const asset = screen.getByRole('button', { name: 'Compressor' });
+  expect(asset.getAttribute('aria-current')).toBe('true');
+  fireEvent.click(asset);
+  expect(onSelect).toHaveBeenCalledWith('asset');
+  const tag = screen.getByText('Current');
+  expect(tag.textContent).toBe('Current');
+  expect(tag.parentElement?.textContent).toContain('current · float64');
+  const device = screen.getByRole('button', { name: 'Meter' });
+  expect(device.getAttribute('aria-expanded')).toBe('true');
+  fireEvent.click(device);
+  expect(device.getAttribute('aria-expanded')).toBe('false');
+  expect(screen.queryByText('Current')).toBeNull();
+  fireEvent.click(device);
+  expect(screen.getByText('Current')).toBeTruthy();
+});
 it('renders the local device/tag hierarchy and creates an asset in an area', async () => {
   const data = { assets: [], tags: [], alarms: [], events: [], rules: [], tree: [{ id: 's', name: 'Plant', areas: [{ id: 'a', name: 'Utilities', assets: [{ id: 'asset', name: 'Compressor', type: 'equipment', enabled: true, devices: [{ id: 'd', name: 'Meter', connection_id: 'c', enabled: true, status: 'CONNECTED', tags: [{ id: 't', key: 'pressure', name: 'Pressure', data_type: 'float32', unit: 'bar', enabled: true, realtime_enabled: true, store_history: true }] }] }] }] }] } as PlatformData;
   const fetch = vi.fn(async (_path: string, _options: RequestInit) => new Response('{}', { status: 201 }));
