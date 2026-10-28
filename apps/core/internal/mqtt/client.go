@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +18,8 @@ type Client struct {
 	client     paho.Client
 	subscribed atomic.Bool
 	cancel     context.CancelFunc
+	ackMu      sync.Mutex
+	closed     bool
 }
 
 func Connect(parent context.Context, address, clientID string, engine *telemetry.Engine) (*Client, error) {
@@ -41,7 +44,7 @@ func Connect(parent context.Context, address, clientID string, engine *telemetry
 						done()
 					}
 					if err == nil {
-						message.Ack()
+						result.acknowledge(message)
 						return
 					}
 					if ctx.Err() != nil {
@@ -53,7 +56,7 @@ func Connect(parent context.Context, address, clientID string, engine *telemetry
 						_, diagnosticErr := engine.Pool.Exec(operation, "INSERT INTO ingestion_diagnostics(topic,reason) VALUES($1,$2)", message.Topic(), err.Error())
 						done()
 						if diagnosticErr == nil {
-							message.Ack()
+							result.acknowledge(message)
 							return
 						}
 					}
@@ -108,4 +111,38 @@ func Connect(parent context.Context, address, clientID string, engine *telemetry
 func (c *Client) Healthy(context.Context) bool {
 	return c.client.IsConnectionOpen() && c.subscribed.Load()
 }
-func (c *Client) Close() { c.cancel(); c.client.Disconnect(250) }
+func (c *Client) acknowledge(message paho.Message) {
+	c.ackMu.Lock()
+	defer c.ackMu.Unlock()
+	if c.closed {
+		return
+	}
+	if !safeAck(message.Ack) {
+		slog.Warn("MQTT disconnected before acknowledgement; durable message can be redelivered")
+	}
+}
+
+// Paho closes the acknowledgement channel during disconnect. Late asynchronous
+// workers must leave that delivery unacknowledged instead of crashing Core.
+func safeAck(ack func()) (ok bool) {
+	defer func() {
+		if reason := recover(); reason != nil {
+			if fmt.Sprint(reason) != "send on closed channel" {
+				panic(reason)
+			}
+			ok = false
+		}
+	}()
+	ack()
+	return true
+}
+func (c *Client) Close() {
+	c.ackMu.Lock()
+	defer c.ackMu.Unlock()
+	if c.closed {
+		return
+	}
+	c.closed = true
+	c.cancel()
+	c.client.Disconnect(250)
+}
