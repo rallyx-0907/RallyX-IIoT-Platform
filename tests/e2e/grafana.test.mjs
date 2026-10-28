@@ -55,8 +55,21 @@ async function checkBrowser(){
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result.value;};
   await send('Page.enable');await send('Network.enable');await send('Network.setCookie',{name:'rallyx_session',value:cookie.split('=')[1],url:base,path:'/',httpOnly:true,sameSite:'Strict'});
   await send('Page.navigate',{url:base+'/#dashboards'});
-  await until(()=>evaluate(`!!document.querySelector('iframe')?.contentDocument?.body?.innerText.includes('Xu hướng nhiều tín hiệu')`),'authenticated embedded Grafana panel gallery');
-  await until(()=>evaluate(`document.querySelector('iframe')?.contentDocument?.querySelectorAll('canvas').length > 0`),'rendered Grafana time series data');
+  await until(()=>evaluate(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Tạo dashboard cho một point')`),'point dashboard creation entry');
+  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo dashboard cho một point').click()`);
+  const available=await api('/api/v1/tags');
+  const chosen=available.find(p=>p.quality==='GOOD'&&!['bool','string'].includes(p.data_type)&&p.store_history!==false&&(!process.env.RALLYX_GRAFANA_POINT_KEY||p.key===process.env.RALLYX_GRAFANA_POINT_KEY));assert.ok(chosen,'numeric point for wizard');
+  async function select(label,value){await evaluate(`(()=>{const el=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith(${JSON.stringify(label)})).querySelector('select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('change',{bubbles:true}));})()`);await pause(200);}
+  await until(()=>evaluate(`document.querySelector('form select')?.options.length>1`),'loaded devices');
+  await select('1. Thiết bị',chosen.device_id);await select('2. Điểm dữ liệu',chosen.id);
+  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo và mở dashboard').click()`);
+  await until(()=>evaluate(`!!document.querySelector('iframe')`),'saved point dashboard iframe');
+  await evaluate(`document.querySelector('iframe').scrollIntoView({block:'start'})`);
+  const frameURL=await evaluate(`document.querySelector('iframe').getAttribute('src')`);const uid=frameURL.split('/')[3].split('?')[0];
+  const created=await api('/grafana/api/dashboards/uid/'+uid);assert.equal(created.dashboard.description,'RallyX point: '+chosen.id);
+  for(const panel of created.dashboard.panels){assert.ok(panel.targets[0].rawSql.includes("tag_id = '"+chosen.id+"'"));const result=await query(panel.targets[0].rawSql.replaceAll('$__interval',"'10s'"),panel.targets[0].format);noQueryError(result);}
+  await until(()=>evaluate(`document.querySelector('iframe')?.contentDocument?.querySelectorAll('canvas').length > 0`),'rendered point time series');
+  await until(()=>evaluate(`document.querySelector('iframe')?.contentDocument?.body.innerText.includes('GOOD')`),'rendered current point quality and value');
   await pause(1500);
   const rendered=await evaluate(`document.querySelector('iframe').contentDocument.body.innerText`);
   assert.equal(/db query error|permission denied|Query error/i.test(rendered),false,'rendered panels have no SQL errors');
