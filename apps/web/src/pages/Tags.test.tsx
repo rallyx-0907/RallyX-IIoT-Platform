@@ -2,6 +2,31 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Tags } from './Tags';
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('scopes signals to a device, searches and inherits the device for creation', async () => {
+  vi.stubGlobal('fetch',vi.fn(async (path:string)=>new Response(JSON.stringify(path.endsWith('/tags') ? [
+    {id:'a',device_id:'one',key:'temp',name:'Temperature',data_type:'float32',address:'12'},
+    {id:'b',device_id:'two',key:'speed',name:'Speed',data_type:'uint16',address:'20'},
+  ] : path.endsWith('/devices') ? [{id:'one',name:'Boiler',connection_id:'c'},{id:'two',name:'Drive',connection_id:'c'}] : [{id:'c',protocol:'modbus-tcp'}]))));
+  render(<Tags user={admin}/>); await screen.findByText('Temperature');
+  fireEvent.change(screen.getByLabelText('Filter signals by device'),{target:{value:'two'}});
+  expect(screen.queryByRole('button',{name:'Edit Temperature'})).toBeNull();
+  expect(screen.getByRole('button',{name:'Edit Speed'})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Search signals'),{target:{value:'missing'}});
+  expect(screen.queryByRole('button',{name:'Edit Speed'})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Add tag'}));
+  expect(screen.getByLabelText('Device')).toHaveProperty('value','two');
+});
+it('pages a large device and resets paging when searching by register address', async () => {
+  const rows=Array.from({length:60},(_,i)=>({id:`t${i}`,device_id:'d',key:`hr_${i}`,name:`Register ${i}`,data_type:'uint16',address:String(1000+i)}));
+  vi.stubGlobal('fetch',vi.fn(async (path:string)=>new Response(JSON.stringify(path.endsWith('/tags')?rows:path.endsWith('/devices')?[{id:'d',name:'PLC',connection_id:'c'}]:[{id:'c',protocol:'modbus-tcp'}]))));
+  render(<Tags user={admin}/>); await screen.findByText('Register 0');
+  expect(screen.queryByRole('button',{name:'Edit Register 25'})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Next page'}));
+  expect(screen.getByRole('button',{name:'Edit Register 25'})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Search signals'),{target:{value:'1059'}});
+  expect(screen.getByRole('button',{name:'Edit Register 59'})).toBeTruthy();
+  expect(screen.queryByRole('button',{name:'Edit Register 25'})).toBeNull();
+});
 const admin = { id: 'u', username: 'user', role: 'admin' as const, must_change_password: false };
 function backend(invalid = false, fail = false, tagOverrides: Record<string, unknown> = {}) {
   const calls: {path:string; method:string; body:Record<string,unknown>}[] = [];

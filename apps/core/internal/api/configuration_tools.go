@@ -101,6 +101,52 @@ func registerConfigurationTools(mux *http.ServeMux, registry storage.Registry, h
 		}
 		writeJSON(w, 200, result)
 	})
+	mux.HandleFunc("GET /api/v1/dashboard/boards", func(w http.ResponseWriter, r *http.Request) {
+		result, err := registry.ListDashboardBoards(r.Context(), auth.Current(r).ID)
+		if err != nil {
+			apiError(w, err)
+			return
+		}
+		writeJSON(w, 200, result)
+	})
+	mux.HandleFunc("POST /api/v1/dashboard/boards", func(w http.ResponseWriter, r *http.Request) {
+		body, err := readObject(w, r)
+		if err != nil {
+			apiError(w, err)
+			return
+		}
+		name, ok := body["name"].(string)
+		if !ok || len(body) != 1 {
+			apiError(w, storage.ErrValidation)
+			return
+		}
+		result, err := registry.CreateDashboardBoard(r.Context(), auth.Current(r).ID, name)
+		if err != nil {
+			apiError(w, err)
+			return
+		}
+		hub.Broadcast(map[string]any{"type": "dashboard"})
+		writeJSON(w, 201, result)
+	})
+	mux.HandleFunc("PATCH /api/v1/dashboard/boards/{id}", func(w http.ResponseWriter, r *http.Request) {
+		body, err := readObject(w, r)
+		if err != nil {
+			apiError(w, err)
+			return
+		}
+		name, ok := body["name"].(string)
+		if !ok || len(body) != 1 {
+			apiError(w, storage.ErrValidation)
+			return
+		}
+		result, err := registry.RenameDashboardBoard(r.Context(), auth.Current(r).ID, r.PathValue("id"), name)
+		if err != nil {
+			apiError(w, err)
+			return
+		}
+		hub.Broadcast(map[string]any{"type": "dashboard"})
+		writeJSON(w, 200, result)
+	})
 	for _, method := range []string{"POST", "PATCH"} {
 		path := "/api/v1/dashboard"
 		if method == "PATCH" {

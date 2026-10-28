@@ -2,6 +2,14 @@
 
 Plan: `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md`.
 
+## Dashboard customization and device-scoped signals 2026-10-28
+
+User requested multiple dashboards for heterogeneous datapoints and manageable device-scoped signal configuration. Added named per-user boards (migration006 retains legacy widgets on the default board), a dedicated navigation entry, numeric dial/level widgets, settings/editing/order/width controls and semantic Boolean displays. Device filter, text/datatype search and 25-row paging keep the signal list bounded; creation inherits selected device scope.
+
+Go real-DB suites and 76 Web tests/build pass. Independent review caught unavailable-tag edits silently selecting another point; the fix keeps missing identity visible and disables save until explicit replacement, with regression coverage. Archived widget edits are disabled. Existing slave configuration is retained; no writes to field equipment. Rollout/browser evidence follows after completion. See `dashboard-guide.vi.md` and `superpowers/plans/2026-10-28-dashboard-and-tag-scope.md`.
+
+Deployed Core `5197529855db` and final Web `5829f6c93573` after private backup and preview migration rehearsal; retained `pre-dashboard-20261028` rollback image tags. Six operating services healthy. Chromium configuration/Modbus/Rule/dashboard acceptance passes 11/11 (the legacy test now filters its saved tag instead of assuming all tags appear on page one). Preview and operating bilingual/readability smoke pass 2/2; additional operating mixed-dashboard Vietnamese desktop/narrow smoke passes 2/2. Final readability changes have a fresh build and 11/11 focused component checks. Web bundle is `index-Cl-iDhnZ.js`. Created `Bàn thử Modbus Slave` through authenticated APIs, with value/dial/level/trend widgets on the existing Windows source; HR40001 was changing above 1,200 and all four widgets had GOOD data. No register writes. Preview stopped; operating configuration/history retained.
+
 ## Rule Engine integration 2026-10-28
 
 Implemented composite typed conditions, ALL/ANY, durable debounce, startup recovery, side-effect-free Test, snapshots and a Vietnamese/English editor. Accepted telemetry batches evaluate atomically; scheduled rules run every second; alarm transitions are persisted through a separate lifecycle handler. Migration 005 repairs legacy false fault conditions while preserving applied checksums. Review fixes verified; no outstanding critical/important findings.

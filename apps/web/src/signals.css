@@ -1,0 +1,11 @@
+.signal-filters { margin-bottom: 1rem; }
+.signal-filters .filters { align-items: end; gap: 1rem; flex-wrap: wrap; }
+.signal-filters label { min-width: 200px; flex: 1; }
+.signal-filters input, .signal-filters select { width: 100%; }
+.signal-row-actions { white-space: nowrap; }
+.signal-row-actions button { margin: .25rem .35rem .25rem 0; }
+.signal-pagination { align-items: center; justify-content: flex-end; margin: 1rem 0; gap: 1rem; }
+@media (max-width: 640px) {
+  .signal-filters label { min-width: 100%; }
+  .signal-pagination { justify-content: center; flex-wrap: wrap; }
+}

@@ -5,6 +5,7 @@ import { NavIcon } from './components/NavIcon';
 import { AuthForm } from './components/AuthForm';
 import { usePlatform } from './stores/usePlatform';
 import { Overview } from './pages/Overview';
+import { DashboardWidgets } from './components/DashboardWidgets';
 import { Assets } from './pages/Assets';
 import { History } from './pages/History';
 import { Alarms } from './pages/Alarms';
@@ -18,6 +19,7 @@ import { LiveData } from './pages/LiveData';
 import type { User } from './types/platform';
 
 const pages = [
+  ['dashboards', '', 'Dashboards', 'Build dashboards from your devices and datapoints.'],
   ['overview', '◫', 'Overview', 'Your local operations, at a glance.'],
   ['assets', '▦', 'Assets', 'Equipment, configured tags, and operating metrics.'],
   ['live', '⌁', 'Live Data', 'Current values and quality from the field.'],
@@ -55,7 +57,7 @@ export function App() {
   };
   if (user === undefined) return <div className="loading-screen" role="status">{translate("Connecting to your workspace…")}</div>;
   if (!user || user.must_change_password) return <AuthForm key={user?.id || 'login'} user={user} onUser={setUser} initialError={startupError} />;
-  const current = pages.find(item => item[0] === page) || pages[0];
+  const current = pages.find(item => item[0] === page) || pages.find(item => item[0] === 'overview')!;
   const { data, loading, error, connection, refresh } = platform;
   return <div className="shell">
     <aside><a className="wordmark" href="#overview" aria-label={translate("RallyX home")}>R<span>✦</span><b>RallyX</b></a><small className="brand-caption">{translate("IIoT PLATFORM")}</small><p className="nav-label">{translate("WORKSPACE")}</p><nav>{pages.map(([id, , label]) => <a key={id} href={`#${id}`} title={translate(label)} aria-label={translate(label)} onClick={() => navigate(id)} aria-current={current[0] === id ? 'page' : undefined}><span><NavIcon page={id} /></span><b>{translate(label)}</b>{id === 'alarms' && data.alarms.length > 0 && <em>{data.alarms.length}</em>}</a>)}</nav><footer><span className="local-dot" /> {translate("LOCAL OPERATIONS")}<br /><span>{translate("Read-only field integration")}</span><div className="profile"><i>{user.username.slice(0, 1).toUpperCase()}</i><div><strong>{user.username}</strong><small>{translate(user.role)}</small></div><button title={translate("Sign out")} aria-label={translate("Sign out")} onClick={async () => { try { await post('/auth/logout', {}); setUser(null); } catch (error) { setActionError(errorMessage(error)); } }}>↪</button></div></footer></aside>
@@ -67,6 +69,7 @@ export function App() {
           {current[0] === 'overview' && <Overview data={data} user={user} offline={connection === 'offline'} onAsset={id => { setSelected(id); navigate('assets'); }} onAlarms={() => navigate('alarms')} onAck={acknowledge} />}
           {current[0] === 'assets' && <Assets data={data} selected={selected} onSelect={setSelected} offline={connection === 'offline'} user={user} onRefresh={refresh} />}
           {current[0] === 'live' && <LiveData data={data} offline={connection === 'offline'} />}
+          {current[0] === 'dashboards' && <DashboardWidgets offline={connection === 'offline'} />}
           {current[0] === 'history' && <History data={data} />}
           {current[0] === 'alarms' && <Alarms data={data} user={user} onAck={acknowledge} />}
           {current[0] === 'configuration' && <Tags user={user} onRefresh={refresh} />}

@@ -122,7 +122,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
     if (smokeOnly) {
       const statuses = await browser.eval(async () => Promise.all(['/assets/tree', '/connections', '/devices', '/templates', '/tags', '/dashboard'].map(async path => (await fetch('/api/v1' + path)).status)));
       assert.ok(statuses.every(status => status === 200));
-      for (const [hash, title] of [['assets', 'Assets'], ['connections', 'Connections'], ['devices', 'Devices'], ['templates', 'Templates'], ['configuration', 'Tag Configuration'], ['live', 'Live Data'], ['history', 'History & Trends'], ['rules', 'Rules'], ['alarms', 'Alarms'], ['system', 'System'], ['overview', 'Overview']]) {
+      for (const [hash, title] of [['dashboards', 'Dashboards'], ['assets', 'Assets'], ['connections', 'Connections'], ['devices', 'Devices'], ['templates', 'Templates'], ['configuration', 'Tag Configuration'], ['live', 'Live Data'], ['history', 'History & Trends'], ['rules', 'Rules'], ['alarms', 'Alarms'], ['system', 'System'], ['overview', 'Overview']]) {
         await browser.page(hash, title); await pause(200);
         assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
       }
@@ -130,7 +130,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       if (process.env.RALLYX_VI_CHECK === 'true') {
         await t.test('Vietnamese interface, persisted choice and formatted hierarchy', async () => {
           await browser.fill('Ngôn ngữ / Language', 'vi');
-          for (const [hash, title] of [['overview', 'Tổng quan'], ['assets', 'Tài sản'], ['connections', 'Kết nối'], ['devices', 'Thiết bị'], ['templates', 'Mẫu thiết bị'], ['configuration', 'Cấu hình tín hiệu'], ['live', 'Dữ liệu trực tiếp'], ['history', 'Lịch sử & xu hướng'], ['rules', 'Quy tắc'], ['alarms', 'Cảnh báo'], ['system', 'Hệ thống']]) {
+          for (const [hash, title] of [['dashboards', 'Bảng điều khiển'], ['overview', 'Tổng quan'], ['assets', 'Tài sản'], ['connections', 'Kết nối'], ['devices', 'Thiết bị'], ['templates', 'Mẫu thiết bị'], ['configuration', 'Cấu hình tín hiệu'], ['live', 'Dữ liệu trực tiếp'], ['history', 'Lịch sử & xu hướng'], ['rules', 'Quy tắc'], ['alarms', 'Cảnh báo'], ['system', 'Hệ thống']]) {
             await browser.page(hash, title); await pause(100);
             assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
           }
@@ -190,6 +190,28 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
         await browser.send('Emulation.clearDeviceMetricsOverride');
         await browser.click('Cancel');
       }
+      if (process.env.RALLYX_DASHBOARD_CHECK === 'true') {
+        await t.test('saved mixed dashboard renders in Vietnamese on desktop and narrow screens', async () => {
+          const widgets = await browser.eval(async () => (await fetch('/api/v1/dashboard')).json());
+          const boardId = widgets.find(widget => widget.type === 'level' && widget.board_id)?.board_id;
+          assert.ok(boardId, 'configured mixed dashboard exists');
+          await browser.page('dashboards', 'Dashboards');
+          await browser.fill('Dashboard', boardId);
+          await until(() => browser.eval(() => document.querySelectorAll('.dashboard-widget').length >= 4), 'mixed dashboard widgets');
+          await browser.fill('Ngôn ngữ / Language', 'vi');
+          await browser.text('Bảng điều khiển');
+          assert.equal(await browser.eval(() => document.querySelectorAll('.dashboard-gauge.dial').length), 1);
+          assert.equal(await browser.eval(() => document.querySelectorAll('.dashboard-gauge.level').length), 1);
+          assert.equal(await browser.eval(() => document.documentElement.scrollWidth > innerWidth), false, 'desktop dashboard fits viewport');
+          await browser.screenshot('dashboard-mixed-vi');
+          await browser.send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 1, mobile: false });
+          await pause(200);
+          assert.equal(await browser.eval(() => document.documentElement.scrollWidth > innerWidth), false, 'narrow dashboard fits viewport');
+          await browser.screenshot('dashboard-mixed-vi-narrow');
+          await browser.send('Emulation.clearDeviceMetricsOverride');
+          await browser.fill('Ngôn ngữ / Language', 'en');
+        });
+      }
       await browser.click('Sign out'); await browser.text('Sign in to RallyX');
       return;
     }
@@ -221,7 +243,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       runTagID = await browser.eval(async id => (await (await fetch('/api/v1/tags')).json()).find(tag => tag.device_id === id && tag.key === 'run_flag').id, a.id);
     });
     await t.test('saved tag Test Read, live values and history', async () => {
-      await browser.page('configuration', 'Tag Configuration'); await browser.text(`Signal 1 ${stamp}`); await browser.click(`Test read Signal 1 ${stamp}`, deviceA); await browser.text('Raw:'); await browser.text('Decoded: 100'); await browser.text('Scaled: 100');
+      await browser.page('configuration', 'Tag Configuration'); await browser.fill('Filter signals by device', a.id); await browser.fill('Search signals', 'Signal 1'); await browser.text(`Signal 1 ${stamp}`); await browser.click(`Test read Signal 1 ${stamp}`, deviceA); await browser.text('Raw:'); await browser.text('Decoded: 100'); await browser.text('Scaled: 100');
       await browser.page('live', 'Live Data'); await browser.fill('Filter by device', b.id); await browser.text('200');
       await browser.page('history', 'History & Trends'); await browser.fill('Asset', asset, true); await browser.fill('Tag', tag.id); await until(() => browser.eval(() => !!document.querySelector('svg[aria-label="Analog telemetry trend"]')), 'recorded numeric trend');
     });
@@ -231,6 +253,17 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       assert.equal(await browser.eval(() => [...document.querySelectorAll('button')].find(button => button.textContent === 'Import CSV').disabled), true);
       await browser.fill('CSV content', csv); await browser.click('Preview CSV'); await browser.text('100 rows; 100 valid.'); await browser.click('Import CSV'); await browser.text('Imported 100 tags.');
       await browser.page('live', 'Live Data'); await browser.fill('Filter by device', b.id); await browser.text('bulk_99'); await until(() => browser.eval(() => [...document.querySelectorAll('.live-reading')].some(row => row.textContent.includes('bulk_99') && row.textContent.includes('399'))), 'imported tag telemetry', 45000);
+    });
+    await t.test('signal configuration scopes devices and searches a large register list', async () => {
+      await browser.page('configuration', 'Tag Configuration');
+      await browser.fill('Filter signals by device', b.id);
+      await browser.fill('Search signals', 'bulk_99');
+      await browser.text('bulk_99');
+      assert.equal(await browser.eval(() => document.querySelectorAll('tbody tr').length), 1);
+      assert.equal(await browser.eval(() => [...document.querySelectorAll('tbody tr')].some(row => row.textContent.includes('bulk_98'))), false);
+      await browser.click('Add tag');
+      assert.equal(await browser.eval(() => [...document.querySelectorAll('label')].find(label => label.firstChild?.textContent === 'Device').querySelector('select').value), b.id);
+      await browser.click('Cancel');
     });
     await t.test('new tag rule activates, acknowledges and clears into history', async () => {
       const name = `UI high ${stamp}`;
@@ -248,6 +281,26 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       const saved = await browser.eval(async () => (await fetch('/api/v1/dashboard')).json());
       assert.ok(saved.some(widget => widget.title === `UI value ${stamp}` && widget.tag_id === tag.id), 'pin retains the selected tag identity');
       assert.ok(saved.some(widget => widget.title === `UI status ${stamp}` && widget.tag_id === runTagID && widget.type === 'status'));
+    });
+    await t.test('named dashboards persist numeric gauge settings and widget edits', async () => {
+      await browser.page('dashboards', 'Dashboards');
+      await browser.click('Create dashboard…');
+      await browser.fill('Dashboard name', `UI board ${stamp}`);
+      await browser.click('Create dashboard');
+      await browser.fill('Pin tag', tag.id);
+      await browser.fill('Widget type', 'gauge');
+      await browser.fill('Minimum', '0'); await browser.fill('Maximum', '500');
+      await browser.fill('Widget title', `UI gauge ${stamp}`);
+      await browser.click('Pin to Dashboard');
+      await browser.text(`UI gauge ${stamp}`);
+      const saved = await browser.eval(async () => (await fetch('/api/v1/dashboard')).json());
+      const widget = saved.find(item => item.title === `UI gauge ${stamp}`);
+      assert.ok(widget.board_id); assert.equal(widget.type, 'gauge'); assert.equal(widget.settings.max, 500);
+      await browser.send('Page.reload'); await browser.text(`UI gauge ${stamp}`);
+      await browser.click(`Edit UI gauge ${stamp}`);
+      await browser.fill('Widget title', `UI edited gauge ${stamp}`);
+      await browser.click('Save widget'); await browser.text(`UI edited gauge ${stamp}`);
+      await browser.screenshot('custom-dashboard');
     });
     assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0);
   } catch (error) {

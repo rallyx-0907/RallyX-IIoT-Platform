@@ -18,6 +18,10 @@ Phần mềm không thể tự đoán ý nghĩa thanh ghi hoặc trường paylo
 
 Giao diện mới có biên tập nhiều điều kiện, thử trước khi lưu, bật/tắt, nhân bản và trạng thái đánh giá. Ngôn ngữ mặc định là tiếng Việt; giữ nguyên tên và mã dữ liệu do người dùng cấu hình.
 
+## Bảng điều khiển và tín hiệu
+
+Đã có mục Bảng điều khiển riêng, tạo nhiều bảng có tên theo tài khoản và lưu các ô giá trị/trạng thái/xu hướng/đồng hồ/thanh mức theo kiểu dữ liệu. Hỗ trợ sửa, thứ tự, độ rộng, đơn vị, số lẻ và dải hiển thị. Cấu hình tín hiệu có bộ lọc thiết bị, tìm tên/mã/địa chỉ, kiểu dữ liệu và phân trang 25 dòng. Có bảng mẫu `Bàn thử Modbus Slave` đọc slave Windows hiện có. Xem `dashboard-guide.vi.md`.
+
 ## Những gì còn phải nghiệm thu
 
 - Thiết bị vật lý tại hiện trường: địa chỉ, mạng, bảng thanh ghi/payload, chứng chỉ và sai số thực tế chưa được cung cấp.

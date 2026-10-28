@@ -2,6 +2,7 @@ import { t as translate } from '../i18n';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { errorMessage, post, request } from '../api/client';
 import type { User } from '../types/platform';
+import '../signals.css';
 
 type RecordTag = { id: string; device_id: string; key: string; name: string; data_type: string; [key: string]: unknown };
 type Device = { id: string; name: string; connection_id: string; asset_id: string };
@@ -17,6 +18,10 @@ export function Tags({ user, onRefresh }: { user: User; onRefresh?: () => Promis
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editing, setEditing] = useState<RecordTag | null | undefined>();
   const [deviceID, setDeviceID] = useState('');
+  const [filterDevice, setFilterDevice] = useState('');
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [page, setPage] = useState(0);
   const [archive, setArchive] = useState<RecordTag>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -33,6 +38,10 @@ export function Tags({ user, onRefresh }: { user: User; onRefresh?: () => Promis
   const device = devices.find(item => item.id === deviceID);
   const protocol = connections.find(item => item.id === device?.connection_id)?.protocol || '';
   const modbus = protocol.startsWith('modbus-');
+  const filtered = tags.filter(tag => (!filterDevice || tag.device_id === filterDevice) && (!filterType || tag.data_type === filterType) && [tag.name, tag.key, tag.address, devices.find(d => d.id === tag.device_id)?.name].some(value => String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())));
+  const pages = Math.max(1, Math.ceil(filtered.length / 25));
+  const currentPage = Math.min(page, pages - 1);
+  const visibleTags = filtered.slice(currentPage * 25, (currentPage + 1) * 25);
   async function act(action: () => Promise<void>) {
     if (!admin) return;
     setBusy(true); setError(''); setMessage('');
@@ -56,7 +65,13 @@ export function Tags({ user, onRefresh }: { user: User; onRefresh?: () => Promis
     });
   }
   return <>
-    <div className="toolbar"><p className="muted">{translate("Device-owned tag mappings. Test read reads saved configuration; field writes are unavailable.")}</p><a href="/api/v1/config/tags.csv" download>{translate("Export tags CSV")}</a>{admin && <button className="primary" onClick={() => { setEditing(null); setDeviceID(devices[0]?.id || ''); setError(''); }}>{translate("Add tag")}</button>}</div>
+    <div className="toolbar"><p className="muted">{translate("Device-owned tag mappings. Test read reads saved configuration; field writes are unavailable.")}</p><a href="/api/v1/config/tags.csv" download>{translate("Export tags CSV")}</a>{admin && <button className="primary" onClick={() => { setEditing(null); setDeviceID(filterDevice || devices[0]?.id || ''); setError(''); }}>{translate("Add tag")}</button>}</div>
+    <article className="signal-filters"><div className="filters">
+      <label>{translate('Filter signals by device')}<select value={filterDevice} onChange={e => { setFilterDevice(e.target.value); setPage(0); }}><option value="">{translate('All devices')}</option>{devices.map(d => <option key={d.id} value={d.id}>{d.name} · {tags.filter(t => t.device_id === d.id).length}</option>)}</select></label>
+      <label>{translate('Search signals')}<input type="search" value={search} placeholder={translate('Name, key or address')} onChange={e => { setSearch(e.target.value); setPage(0); }} /></label>
+      <label>{translate('Filter signal datatype')}<select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }}><option value="">{translate('All datatypes')}</option>{[...new Set(tags.map(t => t.data_type))].sort().map(type => <option key={type} value={type}>{translate(type)}</option>)}</select></label>
+      <button onClick={() => { setFilterDevice(''); setSearch(''); setFilterType(''); setPage(0); }}>{translate('Clear filters')}</button>
+    </div><p className="muted" role="status">{translate('Showing {0} of {1} signals', { 0: filtered.length, 1: tags.length })}</p>{!filtered.length && tags.length > 0 && <p>{translate('No signals match these filters.')}</p>}</article>
     {error && <p role="alert" className="error">{translate(error)}</p>}{message && <p role="status">{translate(message)}</p>}
     {admin && editing !== undefined && <article className="form-panel"><div className="panel-heading"><h2>{editing ? translate("Edit tag") : translate("Create tag")}</h2><button onClick={() => setEditing(undefined)}>{translate("Cancel")}</button></div><form className="form-grid" onSubmit={save} key={editing?.id || 'new'}>
       <label>{translate("Device")}<select required disabled={!!editing} value={deviceID} onChange={e => setDeviceID(e.target.value)}><option value="">{translate("Select device")}</option>{devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
@@ -75,10 +90,11 @@ export function Tags({ user, onRefresh }: { user: User; onRefresh?: () => Promis
       {switches.map(([label,key]) => <label className="inline-label" key={key}><input type="checkbox" name={key} defaultChecked={editing?.[key] !== false} onChange={key === 'store_history' ? e => { const policy = e.currentTarget.form?.elements.namedItem('sample_policy') as HTMLSelectElement | null; if (policy && e.currentTarget.checked && policy.value === 'none') policy.value = 'all'; else if (policy && !e.currentTarget.checked) policy.value = 'none'; } : undefined}/>{translate(label)}</label>)}
       <div className="form-actions"><button className="primary" disabled={busy || !deviceID}>{translate("Save tag")}</button></div>
     </form></article>}
-    <article>{!tags.length ? <p className="muted">{translate("No tags configured.")}</p> : <div className="table-wrap"><table><thead><tr><th>{translate("Tag")}</th><th>{translate("Device")}</th><th>{translate("Data type")}</th><th>{translate("History / realtime")}</th><th>{translate("Quality")}</th><th/></tr></thead><tbody>{tags.map(tag => <tr key={tag.id}><td><strong>{tag.name}</strong><small>{tag.key}</small></td><td>{devices.find(d => d.id === tag.device_id)?.name || tag.device_id}</td><td>{translate(tag.data_type)}</td><td>{tag.store_history ? translate("History") : translate("No history")} / {tag.realtime_enabled ? translate("Realtime") : translate("No realtime")}</td><td>{translate(String(tag.quality || 'UNCERTAIN'))}</td><td>{admin && <><button disabled={busy} onClick={() => { setEditing(tag); setDeviceID(tag.device_id); setError(''); }} aria-label={translate("Edit {0}", { "0": tag.name })}>{translate("Edit")}</button><button disabled={busy} aria-label={translate("Test read {0}", { "0": tag.name })} onClick={() => void act(async () => {
+    <article>{!tags.length ? <p className="muted">{translate("No tags configured.")}</p> : <div className="table-wrap"><table><thead><tr><th>{translate("Tag")}</th><th>{translate("Device")}</th><th>{translate("Data type")}</th><th>{translate("History / realtime")}</th><th>{translate("Quality")}</th><th/></tr></thead><tbody>{visibleTags.map(tag => <tr key={tag.id}><td><strong>{tag.name}</strong><small>{tag.key}</small></td><td>{devices.find(d => d.id === tag.device_id)?.name || tag.device_id}</td><td>{translate(tag.data_type)}</td><td>{tag.store_history ? translate("History") : translate("No history")} / {tag.realtime_enabled ? translate("Realtime") : translate("No realtime")}</td><td>{translate(String(tag.quality || 'UNCERTAIN'))}</td><td className="signal-row-actions">{admin && <><button disabled={busy} onClick={() => { setEditing(tag); setDeviceID(tag.device_id); setError(''); }} aria-label={translate("Edit {0}", { "0": tag.name })}>{translate("Edit")}</button><button disabled={busy} aria-label={translate("Test read {0}", { "0": tag.name })} onClick={() => void act(async () => {
       setReadings([]); const owner = devices.find(d => d.id === tag.device_id); if (!owner) throw new Error('Tag device is unavailable.');
       const result = await post<{ readings: typeof readings }>(`/connections/${owner.connection_id}/test-read`, { device_id: owner.id, tag_id: tag.id }); setReadings(result.readings || []);
     })}>{translate("Test read")}</button><button disabled={busy} aria-label={translate("Archive {0}", { "0": tag.name })} onClick={() => setArchive(tag)}>{translate("Archive")} </button></>}</td></tr>)}</tbody></table></div>}</article>
+    {pages > 1 && <div className="filters signal-pagination"><button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>{translate('Previous page')}</button><span>{translate('Page {0} of {1}', { 0: currentPage + 1, 1: pages })}</span><button disabled={currentPage >= pages - 1} onClick={() => setPage(currentPage + 1)}>{translate('Next page')}</button></div>}
     {admin && archive && <article><p>{translate("Archive")}  {archive.name}{translate("? History will be retained.")}</p><button disabled={busy} onClick={() => void act(async () => { await request(`/tags/${archive.id}`, { method: 'DELETE', body: JSON.stringify({ confirm: true, history_policy: 'retain' }) }); await refresh(); setArchive(undefined); setMessage('Tag archived. History retained.'); })}>{translate("Confirm archive")}</button><button onClick={() => setArchive(undefined)}>{translate("Cancel archive")}</button></article>}
     {admin && readings.length > 0 && <article aria-label={translate("Test read result")}>{readings.map(r => <div key={r.tag_id}><strong>{tags.find(t => t.id === r.tag_id)?.name || r.tag_id}</strong><p>{translate("Raw:")}  {JSON.stringify(r.raw)}</p><p>{translate("Decoded:")}  {JSON.stringify(r.decoded)}</p><p>{translate("Scaled:")}  {JSON.stringify(r.scaled)}</p></div>)}</article>}
     {admin && <article className="form-panel"><h2>{translate("CSV import")}</h2><p className="muted">{translate("Required columns: device, tag, data_type. Device accepts an ID or unambiguous name. Preview validates every row; import revalidates atomically.")}</p>
