@@ -65,9 +65,9 @@ class Browser {
     await this.eval(hash => { location.hash = hash; }, hash);
     await until(() => this.eval(title => [...document.querySelectorAll('h1')].some(element => element.textContent === title), title), `page ${title}`);
   }
-  async screenshot(name) {
+  async screenshot(name, viewportOnly = false) {
     mkdirSync('.tools/browser-evidence', { recursive: true });
-    const result = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+    const result = await this.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: !viewportOnly });
     writeFileSync(`.tools/browser-evidence/${name}.png`, Buffer.from(result.data, 'base64'));
   }
   close() { this.socket?.close(); this.process?.kill(); }
@@ -124,6 +124,38 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
         assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0, `${title} has no API errors`);
       }
       await browser.screenshot('operating-ui');
+      if (process.env.RALLYX_READABILITY_CHECK === 'true') {
+        await browser.page('live', 'Live Data'); await browser.text('Equipment monitor');
+        await browser.fill('Filter by device', config.SIMULATOR_MOTOR_DEVICE_ID || 'demo-motor-device');
+        await until(() => browser.eval(() => document.querySelectorAll('.live-reading').length > 0), 'device readings');
+        const sizes = await browser.eval(() => ({ value: parseFloat(getComputedStyle(document.querySelector('.live-value strong')).fontSize), filter: parseFloat(getComputedStyle(document.querySelector('.live-toolbar label')).fontSize), body: parseFloat(getComputedStyle(document.body).fontSize) }));
+        assert.ok(sizes.value >= 30 && sizes.filter >= 14 && sizes.body >= 16, JSON.stringify(sizes));
+        assert.equal(await browser.eval(() => document.documentElement.scrollWidth > innerWidth), false, 'desktop live monitor fits viewport');
+        await browser.screenshot('live-readable-desktop', true);
+        await browser.send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 1, mobile: false });
+        await pause(200);
+        assert.equal(await browser.eval(() => document.documentElement.scrollWidth > innerWidth), false, 'narrow live monitor fits viewport');
+        await browser.screenshot('live-readable-narrow', true);
+        await browser.send('Emulation.clearDeviceMetricsOverride');
+        await browser.page('devices', 'Devices');
+        await until(() => browser.eval(() => !!document.querySelector('button[aria-label^="Edit "]')), 'device edit action');
+        await browser.eval(() => document.querySelector('button[aria-label^="Edit "]').click());
+        await browser.text('Edit device');
+        const form = await browser.eval(() => {
+          const fieldset = document.querySelector('fieldset');
+          const buttons = [...fieldset.querySelectorAll('button')];
+          return { border: getComputedStyle(fieldset).borderTopWidth, display: getComputedStyle(fieldset).display, columns: getComputedStyle(fieldset).gridTemplateColumns.split(' ').length, buttons: buttons.map(button => ({ radius: parseFloat(getComputedStyle(button).borderRadius), height: button.getBoundingClientRect().height, size: parseFloat(getComputedStyle(button).fontSize) })) };
+        });
+        assert.equal(form.border, '0px'); assert.equal(form.display, 'grid'); assert.ok(form.columns >= 2);
+        assert.ok(form.buttons.every(button => button.radius >= 5 && button.height >= 40 && button.size >= 14), JSON.stringify(form));
+        await browser.screenshot('device-form-readable', true);
+        await browser.send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 1, mobile: false });
+        await pause(200);
+        assert.equal(await browser.eval(() => document.documentElement.scrollWidth > innerWidth), false, 'narrow device form fits viewport');
+        await browser.screenshot('device-form-narrow', true);
+        await browser.send('Emulation.clearDeviceMetricsOverride');
+        await browser.click('Cancel');
+      }
       await browser.click('Sign out'); await browser.text('Sign in to RallyX');
       return;
     }
@@ -164,7 +196,7 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       await browser.fill('CSV content', csv.replace(`${b.id},bulk_0`, 'missing_device,bulk_0')); await browser.click('Preview CSV'); await browser.text('Row 2, device:');
       assert.equal(await browser.eval(() => [...document.querySelectorAll('button')].find(button => button.textContent === 'Import CSV').disabled), true);
       await browser.fill('CSV content', csv); await browser.click('Preview CSV'); await browser.text('100 rows; 100 valid.'); await browser.click('Import CSV'); await browser.text('Imported 100 tags.');
-      await browser.page('live', 'Live Data'); await browser.fill('Filter by device', b.id); await browser.text('bulk_99'); await until(() => browser.eval(() => [...document.querySelectorAll('tbody tr')].some(row => row.textContent.includes('bulk_99') && row.textContent.includes('399'))), 'imported tag telemetry', 45000);
+      await browser.page('live', 'Live Data'); await browser.fill('Filter by device', b.id); await browser.text('bulk_99'); await until(() => browser.eval(() => [...document.querySelectorAll('.live-reading')].some(row => row.textContent.includes('bulk_99') && row.textContent.includes('399'))), 'imported tag telemetry', 45000);
     });
     await t.test('new tag rule activates, acknowledges and clears into history', async () => {
       const name = `UI high ${stamp}`;

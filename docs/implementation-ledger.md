@@ -2,6 +2,12 @@
 
 Plan: `RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md`.
 
+## UI readability correction 2026-10-28
+
+User screenshots identified undersized text, native fieldset/buttons and opaque Live Data boolean values. Fixed shared typography/contrast/control defaults and Device form layout; replaced Live Data's default technical table with device/asset groups, large measurements/units, labelled semantic states and visible stale/offline quality. Optional signal details and filters remain. Corrected invalid legacy text bytes in Devices/Templates and added font-independent SVG navigation icons. See `ui-readability-plan.md` for evidence and deployment image.
+
+57 frontend tests, TypeScript/build, isolated Chromium Modbus acceptance 9/9 and preview/operating read-only smoke with 1440px/430px size/overflow assertions pass. Operating Web image updated with the previous image retained; six services healthy and Windows serves the new bundle. Preview stopped. No Core/connectivity image, DB schema, simulator values or credentials changed by this UI rollout.
+
 ## Demo continuation 2026-10-28
 
 - Fixed root dev/up commands and installation instructions to enable the connectivity profile required by dynamic device producers; added `demo.md` with simulator presentation, read-only field setup and WSL access steps.

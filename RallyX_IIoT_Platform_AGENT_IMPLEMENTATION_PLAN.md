@@ -1044,6 +1044,8 @@ An agent must not declare the MVP complete until all gates below are checked.
 
 # 10. Progress Log
 
+2026-10-28 UI readability: corrected small shared typography, native form controls/fieldset layout and legacy text encoding; Live Data now groups devices with large measurements and labelled semantic colour states, with stale/offline protection. 57 frontend tests, TypeScript/build, isolated Chromium Modbus workflows 9/9 and operating read-only responsive smoke pass. Web-only update deployed; previous image retained, six services healthy and Windows new bundle HTTP 200. See `docs/ui-readability-plan.md`; V1 release/hardware gates remain open.
+
 2026-10-28 demo readiness: fixed npm dev/up and quick-start instructions to enable the required connectivity profile. Added `docs/demo.md`. Operating stack six services healthy, four GOOD tags and Windows Web health HTTP 200; read-only Chromium login/API/eleven-page smoke passes. Separate preview Simulator API E2E and Chromium Modbus TCP fixture workflows pass (9/9); preview stopped afterward. Root tests (47 frontend), lint/build and real DB/broker backend integration pass. Physical hardware/offline/reboot and remaining V1 gates stay open.
 
 2026-10-24 approved operating upgrade: deployed the exact rehearsed Core/Web/connectivity images to the existing port 8080 after explicit user approval. All six services healthy; unchanged admin credentials pass real Chromium login, six configuration APIs and eleven pages pass read-only smoke. Windows URL returns HTTP 200. Migrations 001/002/003 applied; 26,167 historical samples and seven runtime sessions present, four current tags GOOD. Pre-upgrade checksummed snapshot and old images retained. Full V1 release gates remain open.
