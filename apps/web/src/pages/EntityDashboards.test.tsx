@@ -4,6 +4,12 @@ import {EntityDashboards} from './EntityDashboards';
 afterEach(()=>{cleanup();vi.unstubAllGlobals();localStorage.clear();history.replaceState(null,'','/');});
 const user={id:'engineer',username:'engineer',role:'admin' as const,must_change_password:false};
 const entity=(id:string)=>({id,name:id==='a'?'Machine A':'Machine B',type_key:'group',revision:1,enabled:true,archived:false,metadata:{},child_count:0});
+it('remembers an entity opened by direct link for subsequent tabs',()=>{
+ history.replaceState(null,'','/?entity=linked-machine#dashboards');
+ vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(()=>{})));
+ render(<EntityDashboards user={user} offline={false}/>);
+ expect(localStorage.getItem('rallyx.entity.last.engineer')).toBe('linked-machine');
+});
 it('opens the same semantic template with each selected entity context',async()=>{
  const fetcher=vi.fn(async(url:RequestInfo|URL,options?:RequestInit)=>{const path=String(url);let body:unknown=[];
  if(path.endsWith('/entity-types'))body=[{key:'group',name:'Group',fields:[]}];
