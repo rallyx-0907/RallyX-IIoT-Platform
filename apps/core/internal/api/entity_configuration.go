@@ -9,6 +9,14 @@ import (
 )
 
 func registerEntityConfiguration(mux *http.ServeMux, s storage.Registry, hub *realtime.Hub) {
+	mux.HandleFunc("GET /api/v1/entities/{id}/available-metrics", func(w http.ResponseWriter, r *http.Request) {
+		scope := r.URL.Query().Get("scope")
+		if scope == "" {
+			scope = "current"
+		}
+		v, e := s.AvailableEntityMetrics(r.Context(), r.PathValue("id"), scope)
+		platformReply(w, hub, v, e, false)
+	})
 	mux.HandleFunc("GET /api/v1/entity-profiles", func(w http.ResponseWriter, r *http.Request) {
 		v, e := s.ListEntityProfiles(r.Context())
 		platformReply(w, hub, v, e, false)

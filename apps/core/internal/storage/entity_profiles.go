@@ -110,7 +110,7 @@ func (s Registry) SaveEntityProfile(ctx context.Context, id string, in EntityPro
 	if _, err = tx.Exec(ctx, `INSERT INTO entity_profile_versions(profile_id,version,metrics,default_template_id,default_template_version) VALUES($1,$2,$3,$4,$5)`, id, version, in.Metrics, tid, tv); err != nil {
 		return out, err
 	}
-	if err = tx.Commit(ctx); err != nil {
+	if err = commitEntity(ctx, tx, "save:entity-profile", id); err != nil {
 		return out, err
 	}
 	out = EntityProfile{ID: id, Name: in.Name, Revision: version, Metrics: in.Metrics}
@@ -124,6 +124,21 @@ func (s Registry) EntityMetrics(ctx context.Context, id string) ([]MetricDefinit
 	var out []MetricDefinition
 	err := s.Pool.QueryRow(ctx, `SELECT v.metrics FROM entities e JOIN entity_profile_versions v ON v.profile_id=e.profile_id AND v.version=e.profile_version WHERE e.id=$1 AND NOT e.archived`, id).Scan(&out)
 	return out, err
+}
+
+func (s Registry) AvailableEntityMetrics(ctx context.Context, id, scope string) (json.RawMessage, error) {
+	if scope != "current" && scope != "parent" && scope != "children" && scope != "descendants" {
+		return nil, ErrValidation
+	}
+	targets, err := s.scopeEntities(ctx, id, MetricScope{Scope: scope})
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(targets))
+	for _, target := range targets {
+		ids = append(ids, target.ID)
+	}
+	return s.List(ctx, `SELECT m->>'key' AS key,min(m->>'name') AS name,m->>'data_type' AS data_type,COALESCE(m->>'unit','') AS unit,count(*) AS entities FROM entities e JOIN entity_profile_versions p ON p.profile_id=e.profile_id AND p.version=e.profile_version CROSS JOIN LATERAL jsonb_array_elements(p.metrics) m WHERE e.id=ANY($1::text[]) GROUP BY m->>'key',m->>'data_type',COALESCE(m->>'unit','') ORDER BY key LIMIT 256`, ids)
 }
 func (s Registry) ListEntityBindings(ctx context.Context, id string) (json.RawMessage, error) {
 	return s.List(ctx, `SELECT b.metric_key,b.tag_id,t.name AS tag_name,t.key AS source_key,t.unit,t.datatype,t.data_type,t.device_id,d.name AS device_name FROM entity_metric_bindings b JOIN tags t ON t.id=b.tag_id JOIN devices d ON d.id=t.device_id WHERE b.entity_id=$1 ORDER BY b.metric_key`, id)
@@ -191,7 +206,7 @@ func (s Registry) SaveEntityBindings(ctx context.Context, id string, revision in
 	if err != nil {
 		return zero, err
 	}
-	return out, tx.Commit(ctx)
+	return out, commitEntity(ctx, tx, "save:entity-bindings", id)
 }
 
 // Sources are paginated and requested only while engineering a mapping.

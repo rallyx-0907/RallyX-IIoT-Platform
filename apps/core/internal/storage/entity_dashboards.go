@@ -100,6 +100,15 @@ func ValidateDashboardDocument(doc DashboardDocument) error {
 			if w.Binding.TypeKey != "" && !semanticKey.MatchString(w.Binding.TypeKey) {
 				return ErrValidation
 			}
+			if (w.Type == "entity-table" || w.Type == "distribution") && (w.Binding.Scope != "children" || w.Binding.TypeKey != "") {
+				return fmt.Errorf("%w: this operational widget uses direct children", ErrValidation)
+			}
+			if w.Type == "alarm-table" && (w.Binding.Scope != "descendants" || w.Binding.TypeKey != "") {
+				return fmt.Errorf("%w: alarm widget uses the current subtree", ErrValidation)
+			}
+			if len(w.Metrics) > 0 && w.Type != "timeseries" {
+				return fmt.Errorf("%w: multiple metrics require a time series widget", ErrValidation)
+			}
 			if len(w.Metrics) > 12 {
 				return ErrValidation
 			}
@@ -186,7 +195,7 @@ func (s Registry) SaveEntityDashboard(ctx context.Context, id string, in EntityD
 		}
 	}
 	out = EntityDashboard{ID: id, Name: in.Name, Revision: revision, PublishedVersion: published, Document: in.Document}
-	return out, tx.Commit(ctx)
+	return out, commitEntity(ctx, tx, "save:entity-dashboard", id)
 }
 func (s Registry) AssignEntityDashboard(ctx context.Context, entityID, templateID string, version, revision int) error {
 	if version < 1 {
@@ -224,7 +233,7 @@ func (s Registry) AssignEntityDashboard(ctx context.Context, entityID, templateI
 	if affected != 1 {
 		return ErrRevision
 	}
-	return tx.Commit(ctx)
+	return commitEntity(ctx, tx, "assign:entity-dashboard", entityID)
 }
 func (s Registry) ResolveEntityDashboard(ctx context.Context, id string) (DashboardDocument, DashboardVersion, error) {
 	var doc DashboardDocument

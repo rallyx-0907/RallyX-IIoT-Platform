@@ -33,6 +33,7 @@ func platformAdmin(w http.ResponseWriter, r *http.Request) bool {
 		writeError(w, 403, "forbidden", "Administrator role required")
 		return false
 	}
+	*r = *r.WithContext(storage.WithEntityActor(r.Context(), auth.Current(r).ID))
 	return true
 }
 func platformReply(w http.ResponseWriter, hub *realtime.Hub, value any, err error, changed bool) {
@@ -47,6 +48,7 @@ func platformReply(w http.ResponseWriter, hub *realtime.Hub, value any, err erro
 }
 func registerEntityPlatform(mux *http.ServeMux, s storage.Registry, hub *realtime.Hub) {
 	registerEntityConfiguration(mux, s, hub)
+	registerEntityRuntime(mux, s, hub)
 	mux.HandleFunc("GET /api/v1/entity-types", func(w http.ResponseWriter, r *http.Request) {
 		value, err := s.ListEntityTypes(r.Context())
 		platformReply(w, hub, value, err, false)

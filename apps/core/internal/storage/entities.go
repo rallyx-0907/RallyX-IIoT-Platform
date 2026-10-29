@@ -158,7 +158,7 @@ func (s Registry) SaveEntityType(ctx context.Context, key string, in EntityTypeI
 	if err != nil {
 		return nil, err
 	}
-	return raw, tx.Commit(ctx)
+	return raw, commitEntity(ctx, tx, "save:entity-type", key)
 }
 func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (Entity, error) {
 	var zero Entity
@@ -289,5 +289,5 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 	if err != nil {
 		return zero, err
 	}
-	return out, tx.Commit(ctx)
+	return out, commitEntity(ctx, tx, "save:entity", id)
 }
