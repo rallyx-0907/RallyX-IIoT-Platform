@@ -48,9 +48,9 @@ const defaults: WidgetForm = { kind: 'value', title: '', range: 60, min: 0, max:
 const boardStorageKey = 'rallyx.dashboard.selected';
 function savedBoard() { try { return localStorage.getItem(boardStorageKey) || ''; } catch { return ''; } }
 
-export function DashboardWidgets({ offline = false }: { offline?: boolean }) {
+export function DashboardWidgets({ offline = false, initialBoardID, onBoardSelect }: { offline?: boolean; initialBoardID?:string; onBoardSelect?:(id:string)=>void }) {
   const [widgets, setWidgets] = useState<Widget[]>([]); const [tags, setTags] = useState<Tag[]>([]); const [boards, setBoards] = useState<Board[]>([]);
-  const [boardId, setBoardId] = useState(savedBoard); const [boardName, setBoardName] = useState(''); const [boardMode, setBoardMode] = useState<'none' | 'create' | 'rename'>('none');
+  const [boardId, setBoardId] = useState(()=>initialBoardID??savedBoard()); const [boardName, setBoardName] = useState(''); const [boardMode, setBoardMode] = useState<'none' | 'create' | 'rename'>('none');
   const [tagId, setTagId] = useState(''); const [deviceId, setDeviceId] = useState(''); const [pointSearch, setPointSearch] = useState(''); const [form, setForm] = useState(defaults); const [editingId, setEditingId] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [loading, setLoading] = useState(true); const [revision, setRevision] = useState(0);
   useEffect(() => { if (offline) return; const timer = window.setInterval(() => setRevision(value => value + 1), 3000); return () => window.clearInterval(timer); }, [offline]);
@@ -68,7 +68,7 @@ export function DashboardWidgets({ offline = false }: { offline?: boolean }) {
     const valid = !boardId || boards.some(board => board.id === boardId);
     if (!valid) setBoardId('');
   }, [boards, loading]);
-  useEffect(() => { try { localStorage.setItem(boardStorageKey, boardId); } catch { /* Board selection remains usable without browser storage. */ } }, [boardId]);
+  useEffect(() => { try { localStorage.setItem(boardStorageKey, boardId); } catch { /* Board selection remains usable without browser storage. */ } onBoardSelect?.(boardId); }, [boardId,onBoardSelect]);
   const devices = useMemo(() => [...new Map(tags.filter(tag => tag.device_id || tag.device_name).map(tag => [tag.device_id || tag.device_name!, { id: tag.device_id || tag.device_name!, name: tag.device_name || tag.device_id! }])).values()], [tags]);
   const candidates = useMemo(() => tags.filter(tag => (!deviceId || tag.device_id === deviceId || tag.device_name === deviceId) && `${tag.name || ''} ${tag.tag_name || ''} ${tag.device_name || ''} ${tag.asset_name || ''}`.toLocaleLowerCase().includes(pointSearch.trim().toLocaleLowerCase())), [tags, deviceId, pointSearch]);
   useEffect(() => { if (tagId && !editingId && !candidates.some(tag => tag.id === tagId)) setTagId(''); }, [tagId, editingId, candidates]);

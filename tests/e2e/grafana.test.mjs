@@ -51,10 +51,40 @@ async function checkBrowser(){
   let targets;await until(async()=>{try{targets=await(await fetch('http://127.0.0.1:9222/json')).json();return targets.length>0}catch{return false}},'Chromium');
   socket=new WebSocket(targets.find(t=>t.type==='page').webSocketDebuggerUrl);await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject});
   socket.onmessage=event=>{const m=JSON.parse(event.data);if(m.id){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(m.error):p.resolve(m.result)}};
-  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++next;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params}))});
+  const send=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++next;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params,sessionId}))});
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result.value;};
+  async function verifyNewTab(uid){
+   const target=await send('Target.createTarget',{url:base+'/'});
+   try{
+    const attached=await send('Target.attachToTarget',{targetId:target.targetId,flatten:true});
+    const tabEval=async expression=>{try{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true},attached.sessionId);if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result.value;}catch(error){if(error.code===-32000)return undefined;throw error;}};
+    async function reloadTab(){const before=await tabEval('performance.timeOrigin');await send('Page.reload',{},attached.sessionId);await until(async()=>{const current=await tabEval('performance.timeOrigin');return current&&current!==before;},'new document after reload');}
+    try{await until(async()=>String(await tabEval(`document.querySelector('iframe')?.getAttribute('src')`)).includes('/'+uid+'?kiosk'),'same saved dashboard in genuinely new tab');}catch(error){console.log('Expected UID',uid,'final tab state',await tabEval(`JSON.stringify({url:location.href,frame:document.querySelector('iframe')?.getAttribute('src'),text:document.body.innerText.slice(-2000)})`));throw error;}
+    assert.equal(await tabEval(`!!document.querySelector('nav a[href="#widgets"]')`),false,'one dashboard navigation entry');
+    await reloadTab();
+    await until(async()=>String(await tabEval(`document.querySelector('iframe')?.getAttribute('src')`)).includes('/'+uid+'?kiosk'),'same dashboard after new-tab reload');
+    const simple=await api('/api/v1/dashboard/boards');
+    if(simple.length){
+     const board=simple[0];
+     await tabEval(`Array.from(document.querySelectorAll('button')).find(b=>b.getAttribute('aria-label')===${JSON.stringify(board.name+' · Bảng theo dõi đơn giản')}).click()`);
+     await until(()=>tabEval(`document.querySelector('.dashboard-board-bar select')?.value===${JSON.stringify(board.id)}`),'existing simple board recovered through main dashboard page');
+     await reloadTab();
+     await until(()=>tabEval(`document.querySelector('.dashboard-board-bar select')?.value===${JSON.stringify(board.id)}`),'existing simple board survives new-tab reload');
+     const stored=await api('/api/v1/dashboard');const expected=stored.filter(widget=>widget.board_id===board.id).length;
+     await until(()=>tabEval(`document.querySelectorAll('.dashboard-widget').length===${expected}`),'all server-saved simple board widgets still present');
+     console.log('Existing simple dashboard retained:',board.name,'widgets:',expected);
+    }
+    console.log('New tab, reload and unified saved dashboard discovery passed');
+   }finally{await send('Target.closeTarget',{targetId:target.targetId});}
+  }
   await send('Page.enable');await send('Network.enable');await send('Network.setCookie',{name:'rallyx_session',value:cookie.split('=')[1],url:base,path:'/',httpOnly:true,sameSite:'Strict'});
   await send('Page.navigate',{url:base+'/#dashboards'});
+  if(process.env.RALLYX_GRAFANA_REOPEN_ONLY==='true'){
+   const existing=(await api('/grafana/api/search?type=dash-db')).find(board=>board.uid!=='rallyx-overview');assert.ok(existing);
+   await send('Page.navigate',{url:base+'/?dashboard='+encodeURIComponent(existing.uid)+'#dashboards'});
+   await until(async()=>String(await evaluate(`document.querySelector('iframe')?.getAttribute('src')`)).includes('/'+existing.uid+'?kiosk'),'explicit saved dashboard link');
+   await verifyNewTab(existing.uid);return;
+  }
   await until(()=>evaluate(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Tạo dashboard cho một point')`),'point dashboard creation entry');
   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo dashboard cho một point').click()`);
   const available=await api('/api/v1/tags');
@@ -63,10 +93,12 @@ async function checkBrowser(){
   await until(()=>evaluate(`document.querySelector('form select')?.options.length>1`),'loaded devices');
   await select('1. Thiết bị',chosen.device_id);await select('2. Điểm dữ liệu',chosen.id);
   if(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE)await evaluate(`(()=>{const input=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith('4. Tên dashboard')).querySelector('input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  const previousFrame=await evaluate(`document.querySelector('iframe')?.getAttribute('src')`);
   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo và mở dashboard').click()`);
-  await until(()=>evaluate(`!!document.querySelector('iframe')`),'saved point dashboard iframe');
+  await until(async()=>{const src=await evaluate(`document.querySelector('iframe')?.getAttribute('src')`);return !!src&&src!==previousFrame;},'newly saved point dashboard iframe');
   await evaluate(`document.querySelector('iframe').scrollIntoView({block:'start'})`);
   const frameURL=await evaluate(`document.querySelector('iframe').getAttribute('src')`);const uid=frameURL.split('/')[3].split('?')[0];
+  if(process.env.RALLYX_GRAFANA_REOPEN==='true')await verifyNewTab(uid);
   const created=await api('/grafana/api/dashboards/uid/'+uid);assert.equal(created.dashboard.description,'RallyX point: '+chosen.id);
   for(const panel of created.dashboard.panels){assert.ok(panel.targets[0].rawSql.includes("tag_id = '"+chosen.id+"'"));const result=await query(panel.targets[0].rawSql.replaceAll('$__interval',"'10s'"),panel.targets[0].format);noQueryError(result);}
   await until(()=>evaluate(`document.querySelector('iframe')?.contentDocument?.querySelectorAll('canvas').length > 0`),'rendered point time series');

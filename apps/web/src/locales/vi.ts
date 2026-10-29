@@ -1,8 +1,8 @@
 // Display translations only. Identifiers, configured asset names, and wire values stay unchanged.
 export const vi: Record<string, string> = {
-  'Data widgets': 'Ô dữ liệu', 'Simple saved widgets from the previous dashboard editor.': 'Các ô dữ liệu đã lưu từ trình bảng điều khiển trước.',
+  'Saved simple dashboards': 'Bảng theo dõi đã lưu', 'Saved indicators, gauges and point trends.': 'Các chỉ số, đồng hồ và biểu đồ của point đã lưu.', 'Saved dashboards': 'Dashboard đã lưu', 'Open your saved dashboards to view point values and charts.': 'Mở dashboard đã lưu để xem giá trị và biểu đồ từ các điểm dữ liệu.', 'Open dashboards': 'Mở Bảng điều khiển', 'Data widgets': 'Bảng theo dõi đơn giản', 'Simple saved widgets from the previous dashboard editor.': 'Các ô dữ liệu đã lưu từ trình bảng điều khiển trước.',
   'Grafana uses your RallyX session. Device data is read-only.': 'Grafana dùng phiên đăng nhập RallyX. Dữ liệu thiết bị chỉ được đọc.',
-  'Open Grafana editor': 'Mở trình biên tập Grafana', 'Open Grafana': 'Mở Grafana', 'Legacy data widgets': 'Ô dữ liệu đã lưu',
+  'Open Grafana editor': 'Mở trình biên tập Grafana', 'Open Grafana': 'Mở Grafana', 'Legacy data widgets': 'Bảng theo dõi đơn giản đã lưu',
   'Loading Grafana…': 'Đang tải Grafana…', 'Grafana dashboards': 'Bảng điều khiển Grafana',
   'Grafana is temporarily unavailable. Data collection continues.': 'Grafana tạm thời không khả dụng. Việc thu thập dữ liệu vẫn tiếp tục.', 'Retry': 'Thử lại',
   'Selected signal unavailable: {0}': 'Tín hiệu đã chọn không khả dụng: {0}',

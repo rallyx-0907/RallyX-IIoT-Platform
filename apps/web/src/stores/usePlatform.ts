@@ -3,29 +3,37 @@ import { request, errorMessage } from '../api/client';
 import type { Alarm, Asset, EventRecord, PlatformData, Rule, Site, Tag, User } from '../types/platform';
 
 const empty: PlatformData = { assets: [], tags: [], alarms: [], events: [], rules: [], tree: [] };
-export function usePlatform(user: User | null | undefined) {
+export function usePlatform(user: User | null | undefined, snapshots = true) {
   const [data, setData] = useState<PlatformData>(empty);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connection, setConnection] = useState('connecting');
   const active = useRef(true);
   const busy = useRef(false);
+  const inFlight = useRef<AbortController|null>(null);
   const refresh = useCallback(async () => {
     if (!user || user.must_change_password || busy.current) return;
     busy.current = true;
+    const controller=new AbortController();inFlight.current=controller;
+    const options={signal:controller.signal};
     try {
+      if(!snapshots){
+        const alarms=await request<Alarm[]>('/alarms',options);
+        if(active.current&&!controller.signal.aborted){setData(previous=>({...previous,alarms}));setError('');}
+        return;
+      }
       const [assets, tags, alarms, events, rules, tree] = await Promise.all([
-        request<Asset[]>('/assets'), request<Tag[]>('/tags'), request<Alarm[]>('/alarms'),
-        request<EventRecord[]>('/events?limit=12'), request<Rule[]>('/rules'), request<Site[]>('/assets/tree'),
+        request<Asset[]>('/assets',options), request<Tag[]>('/tags',options), request<Alarm[]>('/alarms',options),
+        request<EventRecord[]>('/events?limit=12',options), request<Rule[]>('/rules',options), request<Site[]>('/assets/tree',options),
       ]);
-      if (active.current) { setData({ assets, tags, alarms, events, rules, tree }); setError(''); }
-    } catch (error) { if (active.current) setError(errorMessage(error)); }
-    finally { busy.current = false; if (active.current) setLoading(false); }
-  }, [user]);
+      if (active.current&&!controller.signal.aborted) { setData({ assets, tags, alarms, events, rules, tree }); setError(''); }
+    } catch (error) { if (active.current&&!controller.signal.aborted) setError(errorMessage(error)); }
+    finally { if(inFlight.current===controller){inFlight.current=null;busy.current = false; if (active.current) setLoading(false);} }
+  }, [user,snapshots]);
   useEffect(() => {
     active.current = true;
     if (!user || user.must_change_password) return;
-    setLoading(true); void refresh();
+    setLoading(snapshots); void refresh();
     let socket: WebSocket;
     let stopped = false;
     let reconnect: ReturnType<typeof setTimeout>;
@@ -40,7 +48,7 @@ export function usePlatform(user: User | null | undefined) {
     };
     connect();
     const poll = setInterval(() => { void refresh(); }, 15000);
-    return () => { stopped = true; active.current = false; clearTimeout(reconnect); clearTimeout(update); clearInterval(poll); socket?.close(); };
-  }, [user, refresh]);
+    return () => { stopped = true; active.current = false; inFlight.current?.abort();inFlight.current=null;busy.current=false;clearTimeout(reconnect); clearTimeout(update); clearInterval(poll); socket?.close(); };
+  }, [user, refresh,snapshots]);
   return { data, loading, error, connection, refresh };
 }

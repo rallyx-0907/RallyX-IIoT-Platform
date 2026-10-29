@@ -34,3 +34,15 @@ it('keeps API failures visible instead of showing successful empty data', async 
   render(<App />);
   expect(await screen.findByText('Database unavailable')).toBeTruthy();
 });
+
+it('returns a signed-in user with a saved dashboard to that dashboard from the root URL',async()=>{
+ history.replaceState(null,'','/');localStorage.setItem('rallyx.dashboard.last.viewer',JSON.stringify({kind:'grafana',id:'kept'}));
+ vi.stubGlobal('WebSocket',OfflineSocket);vi.stubGlobal('fetch',vi.fn((url:string)=>url.endsWith('/auth/me')?response({id:'viewer',username:'viewer',role:'viewer',must_change_password:false}):url.endsWith('/grafana/status')?response({available:true,can_edit:false}):url.includes('search?')?response([{uid:'kept',title:'Saved'}]):response([])));
+ render(<App/>);expect((await screen.findByTitle('Grafana dashboards')).getAttribute('src')).toContain('/kept?kiosk');
+ expect(screen.queryByRole('link',{name:'Data widgets'})).toBeNull();localStorage.clear();history.replaceState(null,'','/');
+});
+it('opens saved dashboards even while unrelated platform snapshots are unavailable',async()=>{
+ history.replaceState(null,'','/?dashboard=ready#dashboards');vi.stubGlobal('WebSocket',OfflineSocket);
+ vi.stubGlobal('fetch',vi.fn((url:string)=>url.endsWith('/auth/me')?response({id:'viewer',username:'viewer',role:'viewer',must_change_password:false}):url.endsWith('/grafana/status')?response({available:true,can_edit:false}):url.includes('search?')?response([{uid:'ready',title:'Ready'}]):url.endsWith('/assets/tree')||url.endsWith('/assets')?new Promise<Response>(()=>{}):response([])));
+ render(<App/>);expect((await screen.findByTitle('Grafana dashboards')).getAttribute('src')).toContain('/ready?kiosk');history.replaceState(null,'','/');
+});

@@ -1,7 +1,7 @@
 import { t as translate } from '../i18n';
 import { AlarmsTable, Empty, EventsTable, duration, timeLabel } from '../components/DataDisplay';
 import type { PlatformData, User } from '../types/platform';
-import { DashboardWidgets } from '../components/DashboardWidgets';
+
 
 export function Overview({ data, user, offline, onAsset, onAlarms, onAck }: { data: PlatformData; user: User; offline: boolean; onAsset: (id: string) => void; onAlarms: () => void; onAck: (id: number) => void }) {
   const running = offline ? 0 : data.assets.filter(asset => asset.operating_state === 'RUN').length;
@@ -9,7 +9,7 @@ export function Overview({ data, user, offline, onAsset, onAlarms, onAck }: { da
     <div className="panel-heading section-heading"><div><h2>{translate("Equipment overview")}</h2><p className="muted">{translate("Current operating state across your assets")}</p></div><span className="count-label">{data.assets.length} {translate("assets")}</span></div>
     {!data.assets.length ? <article><Empty title={translate("No assets configured")} detail="An administrator can create a site hierarchy and add assets to begin." /></article> : <div className="asset-grid">{data.assets.map(asset => <button className="asset-card" key={asset.id} onClick={() => onAsset(asset.id)}><div className="asset-card-top"><span className="equipment-icon">{asset.type === 'motor' ? '◉' : '⌁'}</span><span className={`badge badge-${offline ? 'unknown' : asset.operating_state.toLowerCase()}`}>{translate(offline ? 'UNKNOWN' : asset.operating_state)}</span></div><h3>{asset.name}</h3><p className="muted">{asset.area_name}</p><div className="asset-numbers"><div><small>{translate("Runtime today")}</small><strong>{duration(asset.runtime_today_seconds)}</strong></div><div><small>{translate("Starts")}</small><strong>{asset.start_count}</strong></div><div><small>{translate("Faults")}</small><strong>{asset.fault_count}</strong></div></div><div className="asset-last">{translate("Last telemetry")}  <span>{asset.last_telemetry ? timeLabel(asset.last_telemetry) : translate("Not received")}</span></div></button>)}</div>}
     <div className="dashboard-bottom"><article><div className="panel-heading"><h2>{translate("Active alarms")}  <span className="count">{data.alarms.length}</span></h2><button className="text-button" onClick={onAlarms}>{translate("View all →")}</button></div><AlarmsTable alarms={data.alarms.slice(0, 5)} canAck={user.role !== 'viewer'} onAck={onAck} /></article><article><div className="panel-heading"><h2>{translate("Recent activity")}</h2><span className="eyebrow">{translate("LAST 24 HOURS")}</span></div><EventsTable events={data.events.slice(0, 6)} /></article></div>
-    <DashboardWidgets offline={offline} />
+    <article><h2>{translate("Saved dashboards")}</h2><p>{translate("Open your saved dashboards to view point values and charts.")}</p><a href="#dashboards">{translate("Open dashboards")}</a></article>
 
     <p className="muted fineprint">{translate("Sample times are displayed in your browser timezone. Last snapshot includes")}  {data.tags.length} {translate("configured tags.")}  {data.events[0] ? translate("Latest event: {0}.", { "0": timeLabel(data.events[0].ts) }) : ''}</p>
   </>;

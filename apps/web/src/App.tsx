@@ -6,6 +6,7 @@ import { AuthForm } from './components/AuthForm';
 import { usePlatform } from './stores/usePlatform';
 import { Overview } from './pages/Overview';
 import { Grafana } from './pages/Grafana';
+import { linkedDashboard, rememberedDashboard } from './pages/dashboardChoice';
 import { DashboardWidgets } from './components/DashboardWidgets';
 import { Assets } from './pages/Assets';
 import { History } from './pages/History';
@@ -21,7 +22,7 @@ import type { User } from './types/platform';
 
 const pages = [
   ['dashboards', '', 'Dashboards', 'Build dashboards from your devices and datapoints.'],
-  ['widgets', '', 'Data widgets', 'Simple saved widgets from the previous dashboard editor.'],
+  ['widgets', '', 'Saved simple dashboards', 'Saved indicators, gauges and point trends.'],
   ['overview', '◫', 'Overview', 'Your local operations, at a glance.'],
   ['assets', '▦', 'Assets', 'Equipment, configured tags, and operating metrics.'],
   ['live', '⌁', 'Live Data', 'Current values and quality from the field.'],
@@ -43,7 +44,13 @@ export function App() {
   const [page, setPage] = useState(location.hash.slice(1) || 'overview');
   const [selected, setSelected] = useState('');
   const [actionError, setActionError] = useState('');
-  const platform = usePlatform(user);
+  const dashboardEntry=page==='dashboards'||Boolean(!location.hash&&user&&(linkedDashboard()||rememberedDashboard(user.id)));
+  const platform = usePlatform(user,!dashboardEntry);
+  useEffect(() => {
+    if (user && !location.hash && (linkedDashboard() || rememberedDashboard(user.id))) {
+      setPage('dashboards');history.replaceState(null,'',location.pathname+location.search+'#dashboards');
+    }
+  }, [user?.id]);
   useEffect(() => {
     let current = true;
     request<User>('/auth/me').then(result => { if (current) setUser(result); }).catch(error => {
@@ -62,16 +69,16 @@ export function App() {
   const current = pages.find(item => item[0] === page) || pages.find(item => item[0] === 'overview')!;
   const { data, loading, error, connection, refresh } = platform;
   return <div className="shell">
-    <aside><a className="wordmark" href="#overview" aria-label={translate("RallyX home")}>R<span>✦</span><b>RallyX</b></a><small className="brand-caption">{translate("IIoT PLATFORM")}</small><p className="nav-label">{translate("WORKSPACE")}</p><nav>{pages.map(([id, , label]) => <a key={id} href={`#${id}`} title={translate(label)} aria-label={translate(label)} onClick={() => navigate(id)} aria-current={current[0] === id ? 'page' : undefined}><span><NavIcon page={id} /></span><b>{translate(label)}</b>{id === 'alarms' && data.alarms.length > 0 && <em>{data.alarms.length}</em>}</a>)}</nav><footer><span className="local-dot" /> {translate("LOCAL OPERATIONS")}<br /><span>{translate("Read-only field integration")}</span><div className="profile"><i>{user.username.slice(0, 1).toUpperCase()}</i><div><strong>{user.username}</strong><small>{translate(user.role)}</small></div><button title={translate("Sign out")} aria-label={translate("Sign out")} onClick={async () => { try { await post('/auth/logout', {}); setUser(null); } catch (error) { setActionError(errorMessage(error)); } }}>↪</button></div></footer></aside>
+    <aside><a className="wordmark" href="#overview" aria-label={translate("RallyX home")}>R<span>✦</span><b>RallyX</b></a><small className="brand-caption">{translate("IIoT PLATFORM")}</small><p className="nav-label">{translate("WORKSPACE")}</p><nav>{pages.filter(item=>item[0]!=='widgets').map(([id, , label]) => <a key={id} href={`#${id}`} title={translate(label)} aria-label={translate(label)} onClick={() => navigate(id)} aria-current={current[0] === id ? 'page' : undefined}><span><NavIcon page={id} /></span><b>{translate(label)}</b>{id === 'alarms' && data.alarms.length > 0 && <em>{data.alarms.length}</em>}</a>)}</nav><footer><span className="local-dot" /> {translate("LOCAL OPERATIONS")}<br /><span>{translate("Read-only field integration")}</span><div className="profile"><i>{user.username.slice(0, 1).toUpperCase()}</i><div><strong>{user.username}</strong><small>{translate(user.role)}</small></div><button title={translate("Sign out")} aria-label={translate("Sign out")} onClick={async () => { try { await post('/auth/logout', {}); setUser(null); } catch (error) { setActionError(errorMessage(error)); } }}>↪</button></div></footer></aside>
     <main><header><span className="breadcrumb">{translate("Workspace")}  <span>/</span> <strong>{translate(current[2])}</strong></span><div className="header-right"><LanguageSelector /><span className={`connection ${connection}`}><i />{connection === 'live' ? translate("Live connection") : connection === 'offline' ? translate("Disconnected · last known data") : translate("Connecting realtime")}</span><span className="date-label">{new Date().toLocaleDateString(getLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</span></div></header>
       <section><div className="page-heading"><div><p className="eyebrow">{translate("MONITOR · UNDERSTAND · ACT")}</p><h1>{translate(current[2])}</h1><p className="muted">{translate(current[3])}</p></div><button className="secondary" onClick={() => { void refresh(); }} disabled={loading}>{translate("↻ Refresh")}</button></div>
         {(error || actionError) && <p className="error" role="alert">{translate(actionError || error)}</p>}
         {connection === 'offline' && <p className="warning">{translate("Realtime connection interrupted. Values are last known readings; checking for a connection.")}</p>}
-        {loading ? <div className="loading-panel" role="status">{translate("Loading platform data…")}</div> : <>
+        {loading&&!dashboardEntry ? <div className="loading-panel" role="status">{translate("Loading platform data…")}</div> : <>
           {current[0] === 'overview' && <Overview data={data} user={user} offline={connection === 'offline'} onAsset={id => { setSelected(id); navigate('assets'); }} onAlarms={() => navigate('alarms')} onAck={acknowledge} />}
           {current[0] === 'assets' && <Assets data={data} selected={selected} onSelect={setSelected} offline={connection === 'offline'} user={user} onRefresh={refresh} />}
           {current[0] === 'live' && <LiveData data={data} offline={connection === 'offline'} />}
-          {current[0] === 'dashboards' && <Grafana />}
+          {current[0] === 'dashboards' && <Grafana userID={user.id} />}
           {current[0] === 'widgets' && <DashboardWidgets offline={connection === 'offline'} />}
           {current[0] === 'history' && <History data={data} />}
           {current[0] === 'alarms' && <Alarms data={data} user={user} onAck={acknowledge} />}

@@ -23,3 +23,9 @@ Mở dashboard đã lưu rồi chọn **Tùy chỉnh / kéo thả**.
 - **Hoàn tác** khôi phục thao tác trước đó; **Lưu dashboard** ghi bố cục vào Grafana. Đóng trình chỉnh sửa để xem dữ liệu thật.
 
 Nếu người khác đã lưu dashboard trong lúc anh đang chỉnh, hệ thống báo xung đột và giữ lại bản đang sửa, không ghi đè bản mới. Dashboard mẫu do cấu hình quản lý và các nhóm/row nâng cao dùng trình chỉnh sửa Grafana. Bố cục lưới có thể cuộn ngang trên màn hình nhỏ.
+
+## Mở lại dashboard và ý nghĩa bảng theo dõi đơn giản
+
+**Bảng điều khiển → Dashboard đã lưu** là nơi tìm cả dashboard Grafana và các bảng theo dõi đơn giản đã tạo trước đây. Bảng theo dõi đơn giản gồm những chỉ số, đồng hồ, trạng thái hoặc biểu đồ đã ghim từ point; đây là chức năng trước đây có tên “Ô dữ liệu”. Menu riêng đã được bỏ để tránh hai nơi tạo/tìm dashboard.
+
+Lựa chọn gần nhất được nhớ riêng cho tài khoản trong trình duyệt hiện tại. **Mở dashboard trong tab mới** tạo liên kết chứa đúng mã dashboard; tải lại trang vẫn mở lại bảng đó. Khi quay lại tab, danh sách được làm mới; trình chỉnh sửa đang mở không bị đổi sang bảng khác. Dữ liệu dashboard vẫn lấy từ máy chủ, không lưu thay thế trong bộ nhớ của tab. Nếu danh sách tải lỗi, giao diện báo lỗi và cho làm mới thay vì kết luận chưa có dashboard.
