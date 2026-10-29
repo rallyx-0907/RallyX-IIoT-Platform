@@ -35,10 +35,10 @@ it('keeps API failures visible instead of showing successful empty data', async 
   expect(await screen.findByText('Database unavailable')).toBeTruthy();
 });
 
-it('returns a signed-in user with a saved dashboard to that dashboard from the root URL',async()=>{
+it('opens native monitoring from root while retaining old dashboard pointers for the legacy viewer',async()=>{
  history.replaceState(null,'','/');localStorage.setItem('rallyx.dashboard.last.viewer',JSON.stringify({kind:'grafana',id:'kept'}));
  vi.stubGlobal('WebSocket',OfflineSocket);vi.stubGlobal('fetch',vi.fn((url:string)=>url.endsWith('/auth/me')?response({id:'viewer',username:'viewer',role:'viewer',must_change_password:false}):url.endsWith('/grafana/status')?response({available:true,can_edit:false}):url.includes('search?')?response([{uid:'kept',title:'Saved'}]):response([])));
- render(<App/>);expect((await screen.findByTitle('Grafana dashboards')).getAttribute('src')).toContain('/kept?kiosk');
+ render(<App/>);expect(await screen.findByText('Giám sát theo thực thể')).toBeTruthy();expect(localStorage.getItem('rallyx.dashboard.last.viewer')).toContain('kept');
  expect(screen.queryByRole('link',{name:'Data widgets'})).toBeNull();localStorage.clear();history.replaceState(null,'','/');
 });
 it('opens saved dashboards even while unrelated platform snapshots are unavailable',async()=>{
