@@ -192,6 +192,9 @@ func (s Registry) Archive(ctx context.Context, resource, id, actor string) error
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(7261700)"); err != nil {
+		return err
+	}
 	if err := lockConfigurationAssets(ctx, tx, resource, id, nil); err != nil {
 		return err
 	}

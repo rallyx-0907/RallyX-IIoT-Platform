@@ -46,6 +46,11 @@ func (s Registry) Write(ctx context.Context, resource, id string, body map[strin
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
+	if resource == "sites" || resource == "areas" || resource == "assets" || resource == "devices" {
+		if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(7261700)"); err != nil {
+			return nil, err
+		}
+	}
 	result, err := s.write(ctx, tx, resource, id, body, actor)
 	if err != nil {
 		return nil, err

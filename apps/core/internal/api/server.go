@@ -38,6 +38,7 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 	registerRules(mux, registry, hub)
 	registerConnectivity(root, registry, hub)
 	registerConnectivityDiagnostics(mux)
+	registerEntityPlatform(mux, registry, hub)
 	databaseHealthy := func(ctx context.Context) bool { return pool.Ping(ctx) == nil }
 	health := HealthHandler(databaseHealthy, mqttHealthy)
 	root.Handle("GET /health", health)
@@ -183,6 +184,8 @@ func apiError(w http.ResponseWriter, err error) {
 	var pg *pgconn.PgError
 	var csv *storage.CSVValidationError
 	switch {
+	case errors.Is(err, storage.ErrRevision):
+		writeError(w, 409, "revision_conflict", err.Error())
 	case errors.As(err, &csv):
 		writeJSON(w, 422, map[string]any{"error": map[string]any{"code": "csv_validation_error", "message": csv.Error(), "details": csv.Preview.Errors}})
 	case errors.Is(err, storage.ErrValidation):

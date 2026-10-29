@@ -1,6 +1,6 @@
 # RallyX: entity-driven monitoring and native dynamic dashboards
 
-Status: proposed design, awaiting user approval; no runtime migration authorized by this document alone.
+Status: approved by user on 2026-10-29: native primary runtime, optional Grafana, A–D first, preserve field data/history. Execution plan: `docs/superpowers/plans/2026-10-29-native-entity-runtime.md`.
 
 ## Intent and source
 
