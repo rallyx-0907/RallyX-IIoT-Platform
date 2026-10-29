@@ -46,6 +46,7 @@ func platformReply(w http.ResponseWriter, hub *realtime.Hub, value any, err erro
 	}
 }
 func registerEntityPlatform(mux *http.ServeMux, s storage.Registry, hub *realtime.Hub) {
+	registerEntityConfiguration(mux, s, hub)
 	mux.HandleFunc("GET /api/v1/entity-types", func(w http.ResponseWriter, r *http.Request) {
 		value, err := s.ListEntityTypes(r.Context())
 		platformReply(w, hub, value, err, false)
