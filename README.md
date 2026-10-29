@@ -4,11 +4,13 @@ Local equipment monitoring for electrical panels: live tags, operating history, 
 
 ## Architecture
 
-Node-RED maps simulator/field data to MQTT. Mosquitto delivers it to Go Core, which owns business rules and persists data in PostgreSQL + TimescaleDB. React displays the configured asset model through REST and WebSocket. Runtime operation must not require Internet.
+The connectivity service reads configured Simulator/Modbus/MQTT sources and delivers canonical telemetry through Mosquitto to Go Core. Core owns business rules, semantic entity/profile bindings, dashboard versions and PostgreSQL + TimescaleDB storage. React renders native dashboards by entity context. Node-RED remains an optional engineering adapter. Runtime operation must not require Internet.
 
 See [architecture](docs/architecture.md), [MQTT contract](docs/mqtt-contract.md), [deployment](docs/deployment.md), and the [implementation roadmap](RallyX_IIoT_Platform_AGENT_IMPLEMENTATION_PLAN.md).
 
 The mandatory [local device extensibility spec](RallyX_IIoT_Platform_AGENT_CHANGE_SPEC_Local_App_Device_Extensibility.md) now governs V1. See its [execution plan](docs/local-extensibility-plan.md). The existing runtime is a tested implementation baseline; migration to the device-oriented contract and dynamic protocol configuration is in progress. SaaS, tenants, cloud sync and fleet management are outside V1.
+
+Native entity dashboards use shared profiles and templates; see [the configuration guide](docs/native-entity-dashboards.md). Grafana and previously saved boards remain optional legacy views. The broader [target scope and remaining work](docs/specifications/iiot-target-gap-map.md) are tracked separately from the read-only V1 release gates.
 
 ## Quick start
 

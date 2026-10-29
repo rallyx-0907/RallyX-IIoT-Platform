@@ -54,7 +54,7 @@ async function checkBrowser(){
   const send=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++next;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params,sessionId}))});
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result.value;};
   async function verifyNewTab(uid){
-   const target=await send('Target.createTarget',{url:base+'/'});
+   const target=await send('Target.createTarget',{url:base+'/#legacy-dashboards'});
    try{
     const attached=await send('Target.attachToTarget',{targetId:target.targetId,flatten:true});
     const tabEval=async expression=>{try{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true},attached.sessionId);if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result.value;}catch(error){if(error.code===-32000)return undefined;throw error;}};

@@ -29,7 +29,7 @@ No gap listed here is marked implemented by writing this design.
 ## Approaches
 
 1. Continue configuring Grafana variables and provisioning. Reuses chart widgets, but leaves entity CRUD, profile semantics, assignment, tree navigation and product permissions in another layer. A SQL/iframe workflow remains the operator surface. This does not address the user's principal goal.
-2. Build native entity/profile/template runtime in existing RallyX Core and React; keep Grafana optional for engineering analysis and old saved boards. Reuses current ingestion, identity, time-series history, alarms and adapters. Requires a real semantic query service and configuration model. **Recommended engineering choice; user approval pending.**
+2. Build native entity/profile/template runtime in existing RallyX Core and React; keep Grafana optional for engineering analysis and old saved boards. Reuses current ingestion, identity, time-series history, alarms and adapters. Requires a real semantic query service and configuration model. **Approved by user on 2026-10-29.**
 3. Replace the platform wholesale with another product. Would require unverified migration of current connectors, tag identities, telemetry history and users. Not proposed for this workspace.
 
 Use Go, PostgreSQL/TimescaleDB and React/TypeScript already in the repository. Chart/rendering libraries are an implementation choice after checking their local/offline packaging, license and accessibility. No CDN or runtime Internet dependency. Widget plugins implement a documented renderer contract; new application profiles/templates are configuration, whereas a fundamentally new visualization renderer can require a plugin release.

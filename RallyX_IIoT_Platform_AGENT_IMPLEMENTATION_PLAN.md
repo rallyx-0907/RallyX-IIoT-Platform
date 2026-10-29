@@ -1109,7 +1109,9 @@ Add one line after each completed task group. Keep notes short and factual.
 - [x] DB migrations reproduce a clean install.
 - [ ] Offline installer is verified without Internet.
 - [x] Demo works with Simulator.
-- [ ] Demo works with at least one Modbus source.
+- [x] Demo works with at least one Modbus source (Windows Modbus TCP Slave ID1, ten registered points; physical PLC/RTU acceptance remains separate).
 - [ ] Backup/restore works on a second clean machine.
 - [ ] Release packages exist for amd64 and arm64.
 - [ ] RallyX IIoT Platform V1.0 is ready for pilot use.
+
+2026-10-29 native entity dashboards: approved initial A–D delivered in Core/React with configurable entity types/hierarchy, versioned semantic profiles, validated source bindings, shared native templates, 10 renderer kinds, visual drag/resize, separate preview/apply, scoped aggregates/history and child/alarm drill-down. Full Core tests with real DB/broker and 110 Web tests pass; actual Chromium verifies shared context, export/import/clone cancellation, real rule alarm, reload/new tab, responsive view, restart and Grafana independence. Coordinated operating rollout preserves 14 tags / 3 devices / 5 old widgets, maps existing sources to native dashboards, and verifies ten GOOD Modbus TCP Slave panels plus the original four-widget user board. Source backups and prior image tags retained. Initial A–D enhancements and E/F gaps remain explicit in docs/specifications/iiot-target-gap-map.md; no SaaS, physical RTU, offline release or all 84-section completion is claimed. Guide: docs/native-entity-dashboards.md.

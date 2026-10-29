@@ -4,6 +4,8 @@ Reference: [original product document](iiot-monitoring-dynamic-dashboard.source.
 
 Design proposal: [entity/profile/template runtime](../superpowers/specs/2026-10-29-entity-driven-platform-design.md). This map records targets, not completed implementation. Current evidence comes from repository source; prior test results do not certify unimplemented requirements.
 
+Delivery update, 2026-10-29: the initial A–D native slice now has additive entity/type/profile/binding/template storage, native context runtime, 10 renderers, separate visual builder/preview/apply, scoped history/aggregation, drill-down and legacy compatibility. Full Core tests with real DB/broker, 110 Web tests and real Chromium journeys pass; restart and Grafana-independent operation are verified. See [native dashboard guide](../native-entity-dashboards.md). The table below records the original gap assessment; it is not a claim that all 84 sections or all advanced A–D details are complete. Profile state definitions, type icons/allowed-parent constraints, formulas, counter/energy semantics, richer visualizations, reports, scoped streaming and SaaS remain tracked follow-up work.
+
 | Reference sections | Target | Existing foundation / missing work | Delivery |
 |---|---|---|---|
 | 1–3 | Dynamic entities, types, hierarchy, metadata | Fixed site/area/asset/device tree and JSON metadata exist; configurable types, schema-driven custom fields and arbitrary containment need implementation | A |
