@@ -75,7 +75,7 @@ async function checkBrowser(){
      console.log('Existing simple dashboard retained:',board.name,'widgets:',expected);
     }
     console.log('New tab, reload and unified saved dashboard discovery passed');
-   }finally{await send('Target.closeTarget',{targetId:target.targetId});}
+   }finally{await send('Target.closeTarget',{targetId:target.targetId});await send('Page.bringToFront');await pause(500);}
   }
   await send('Page.enable');await send('Network.enable');await send('Network.setCookie',{name:'rallyx_session',value:cookie.split('=')[1],url:base,path:'/',httpOnly:true,sameSite:'Strict'});
   await send('Page.navigate',{url:base+'/#dashboards'});
@@ -85,31 +85,37 @@ async function checkBrowser(){
    await until(async()=>String(await evaluate(`document.querySelector('iframe')?.getAttribute('src')`)).includes('/'+existing.uid+'?kiosk'),'explicit saved dashboard link');
    await verifyNewTab(existing.uid);return;
   }
-  await until(()=>evaluate(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Tạo dashboard cho một point')`),'point dashboard creation entry');
-  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo dashboard cho một point').click()`);
+  await until(()=>evaluate(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Tạo dashboard')`),'point dashboard creation entry');
+  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo dashboard').click()`);
   const available=await api('/api/v1/tags');
   const chosen=available.find(p=>p.quality==='GOOD'&&!['bool','string'].includes(p.data_type)&&p.store_history!==false&&(!process.env.RALLYX_GRAFANA_POINT_KEY||p.key===process.env.RALLYX_GRAFANA_POINT_KEY));assert.ok(chosen,'numeric point for wizard');
   async function select(label,value){await evaluate(`(()=>{const el=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith(${JSON.stringify(label)})).querySelector('select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('change',{bubbles:true}));})()`);await pause(200);}
-  await until(()=>evaluate(`document.querySelector('form select')?.options.length>1`),'loaded devices');
-  await select('1. Thiết bị',chosen.device_id);await select('2. Điểm dữ liệu',chosen.id);
-  if(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE)await evaluate(`(()=>{const input=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith('4. Tên dashboard')).querySelector('input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
-  const previousFrame=await evaluate(`document.querySelector('iframe')?.getAttribute('src')`);
-  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo và mở dashboard').click()`);
+  await until(()=>evaluate(`document.querySelectorAll('.point-option').length>0`),'loaded hierarchy and points');
+  const chosenGroup=[chosen,...available.filter(p=>p.id!==chosen.id&&p.quality==='GOOD'&&!['bool','boolean','string'].includes(p.data_type)&&p.store_history!==false)].slice(0,4);
+  for(const p of chosenGroup){await select('Thiết bị',p.device_id);await evaluate(`document.querySelector('input[type="checkbox"][value="'+${JSON.stringify(p.id)}+'"]').click()`);}
+  await evaluate(`(()=>{const input=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith('Tên dashboard')).querySelector('input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE||'Giám sát nhà máy · Nhiều thiết bị')});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  for(let i=1;i<chosenGroup.length;i++)await evaluate(`(()=>{const el=document.querySelectorAll('.chart-setting select')[${i}];Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(['timeseries','gauge','bargauge','stat'][i])});el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  const beforeBoards=(await api('/grafana/api/search?type=dash-db')).length;
+  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Xem trước').click()`);
+  await until(()=>evaluate(`document.querySelectorAll('.visual-card .quality-good').length>0`),'real current data in preview');
+  assert.equal((await api('/grafana/api/search?type=dash-db')).length,beforeBoards,'preview does not save a dashboard');
+  mkdirSync('.tools/browser-evidence',{recursive:true});const previewShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync('.tools/browser-evidence/dashboard-preview.png',Buffer.from(previewShot.data,'base64'));  const previousFrame=await evaluate(`document.querySelector('iframe')?.getAttribute('src')`);
+  await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Áp dụng').click()`);
   await until(async()=>{const src=await evaluate(`document.querySelector('iframe')?.getAttribute('src')`);return !!src&&src!==previousFrame;},'newly saved point dashboard iframe');
   await evaluate(`document.querySelector('iframe').scrollIntoView({block:'start'})`);
   const frameURL=await evaluate(`document.querySelector('iframe').getAttribute('src')`);const uid=frameURL.split('/')[3].split('?')[0];
-  if(process.env.RALLYX_GRAFANA_REOPEN==='true')await verifyNewTab(uid);
-  const created=await api('/grafana/api/dashboards/uid/'+uid);assert.equal(created.dashboard.description,'RallyX point: '+chosen.id);
-  for(const panel of created.dashboard.panels){assert.ok(panel.targets[0].rawSql.includes("tag_id = '"+chosen.id+"'"));const result=await query(panel.targets[0].rawSql.replaceAll('$__interval',"'10s'"),panel.targets[0].format);noQueryError(result);}
+  const created=await api('/grafana/api/dashboards/uid/'+uid);assert.ok(created.dashboard.tags.includes('rallyx-workspace'));
+  for(const panel of created.dashboard.panels){assert.ok(chosenGroup.some(p=>panel.targets[0].rawSql.includes("tag_id = '"+p.id+"'")));const result=await query(panel.targets[0].rawSql.replaceAll('$__interval',"'10s'"),panel.targets[0].format);noQueryError(result);}
   await until(()=>evaluate(`document.querySelector('iframe')?.contentDocument?.querySelectorAll('canvas').length > 0`),'rendered point time series');
-  await until(()=>evaluate(`document.querySelector('iframe')?.contentDocument?.body.innerText.includes('GOOD')`),'rendered current point quality and value');
-  await pause(1500);
+
+  await pause(5500);
   const rendered=await evaluate(`document.querySelector('iframe').contentDocument.body.innerText`);
   assert.equal(/db query error|permission denied|Query error/i.test(rendered),false,'rendered panels have no SQL errors');
   mkdirSync('.tools',{recursive:true});writeFileSync('.tools/grafana-rendered-text.txt',rendered);
   assert.equal(await evaluate(`document.querySelector('iframe').contentDocument.querySelectorAll('input[type="password"]').length`),0,'no second login');
   const cookies=await send('Network.getAllCookies');assert.equal(cookies.cookies.some(c=>c.name==='grafana_session'),false,'no independent Grafana session');
-  mkdirSync('.tools/browser-evidence',{recursive:true});const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});writeFileSync('.tools/browser-evidence/grafana-native.png',Buffer.from(shot.data,'base64'));
+  mkdirSync('.tools/browser-evidence',{recursive:true});const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync('.tools/browser-evidence/grafana-native.png',Buffer.from(shot.data,'base64'));
+  if(process.env.RALLYX_GRAFANA_REOPEN==='true')await verifyNewTab(uid);
   if(process.env.RALLYX_GRAFANA_LAYOUT==='true'){
    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tùy chỉnh / kéo thả').click()`);
    await until(()=>evaluate(`!!document.querySelector('[aria-label="Di chuyển ô 1"]')`),'layout editor loaded');
@@ -120,17 +126,17 @@ async function checkBrowser(){
     await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:r.x+dx,y:r.y+dy,button:'left',buttons:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:r.x+dx,y:r.y+dy,button:'left',clickCount:1});await pause(200);
    }
    const width=await evaluate(`document.querySelector('.editor-canvas').getBoundingClientRect().width`);
-   await drag('Đổi kích thước ô 1',-width/2,0);await drag('Di chuyển ô 1',width/4,64);
+   await drag('Đổi kích thước ô 1',-width/4,0);await drag('Di chuyển ô 1',width/4,64);
    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Thêm ô dữ liệu')).click()`);
    const other=available.find(p=>p.id!==chosen.id&&p.quality==='GOOD'&&!['bool','string'].includes(p.data_type))||chosen;
    await select('Thiết bị',other.device_id);await select('Điểm dữ liệu',other.id);await select('Kiểu hiển thị','gauge');
    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Thêm vào dashboard').click()`);
    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Lưu dashboard').click()`);
    await until(()=>evaluate(`document.body.innerText.includes('Đã lưu bố cục dashboard.')`),'layout save');
-   const saved=(await api('/grafana/api/dashboards/uid/'+uid)).dashboard;assert.equal(saved.panels.length,3);assert.equal(saved.panels[0].gridPos.w,12);assert.equal(saved.panels[0].gridPos.x,6);assert.equal(saved.panels[0].gridPos.y,2);assert.equal(saved.panels[2].type,'gauge');assert.ok(saved.panels[2].targets[0].rawSql.includes("tag_id = '"+other.id+"'"));
+   const saved=(await api('/grafana/api/dashboards/uid/'+uid)).dashboard;assert.equal(saved.panels.length,chosenGroup.length*2+1);assert.equal(saved.panels[0].gridPos.w,6);assert.equal(saved.panels[0].gridPos.x,6);assert.equal(saved.panels[0].gridPos.y,2);assert.equal(saved.panels.at(-1).type,'gauge');assert.ok(saved.panels.at(-1).targets[0].rawSql.includes("tag_id = '"+other.id+"'"));
    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Đóng trình chỉnh sửa').click()`);
    await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tùy chỉnh / kéo thả').click()`);
-   await until(()=>evaluate(`document.querySelectorAll('.editor-tile').length===3`),'saved layout reopened');
+   await until(()=>evaluate(`document.querySelectorAll('.editor-tile').length===${chosenGroup.length*2+1}`),'saved layout reopened');
    assert.equal(await evaluate(`document.querySelector('.editor-tile').style.left`),'25%');
    await evaluate(`document.querySelector('.dashboard-editor').scrollIntoView({block:'start'})`);
    const layoutShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync('.tools/browser-evidence/flexible-editor.png',Buffer.from(layoutShot.data,'base64'));

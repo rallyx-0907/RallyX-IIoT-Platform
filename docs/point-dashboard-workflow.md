@@ -1,31 +1,26 @@
-﻿# Guided point dashboards
+# Dashboard theo phạm vi nhà máy
 
-The dashboard entry page lists saved Grafana dashboards and keeps the sample gallery behind an explicit action. Administrators can create a real persisted dashboard by selecting device, point, visualization and name. Numeric points support trends, stat, gauge, bar gauge and table; Boolean and text points use current-value views. History-disabled points do not offer trends. Generated queries bind exactly one escaped point ID, include a quality/timestamp table and use the existing read-only reporting datasource and RallyX session. No new credentials or device writes.
+Mở **Bảng điều khiển** để xem các dashboard đã lưu trên thanh tab. Biểu đồ nằm ngay dưới tab; danh sách cấu hình không chiếm vùng xem. Các dashboard Grafana và bảng theo dõi đơn giản đã có vẫn được giữ nguyên.
 
-Verification: unit interaction test creates through the Grafana API and opens its returned UID; query-builder tests cover fixed point filters and visualization choices; real browser acceptance creates and queries a saved point dashboard against isolated Grafana before demo rollout.
+## Tạo dashboard
 
-## Sử dụng
+1. Bấm **Tạo dashboard** để mở cửa sổ cấu hình riêng.
+2. Nhập tên, lọc theo **Nhà máy → Khu vực → Máy / tài sản → Thiết bị**. Để “Tất cả” nếu muốn kết hợp nhiều máy.
+3. Chọn các point và kiểu hiển thị riêng: chỉ số/trạng thái, xu hướng, đồng hồ, thanh mức hoặc bảng. Có thể chọn tối đa 24 point. Bộ lọc chỉ thu hẹp danh sách; các point đã chọn vẫn hiện ở cột bên phải để kiểm tra/bỏ chọn.
+4. Với đồng hồ/thanh mức, nhập dải đo phù hợp. Dải này không tạo ngưỡng cảnh báo; cấu hình cảnh báo ở Rule Engine.
+5. Bấm **Xem trước**. Số liệu lấy từ hệ thống; lịch sử xem một giờ gần nhất. Tín hiệu tắt, tắt realtime hoặc quá hạn không được coi là giá trị hiện tại tốt. Chưa có thao tác lưu ở bước này.
+6. Bấm **Áp dụng** để lưu dashboard vào Grafana và thêm tab. **Hủy/Đóng** trước khi áp dụng không tạo dashboard.
 
-1. Vào **Bảng điều khiển**, chọn **Tạo dashboard cho một point**.
-2. Chọn thiết bị, tìm và chọn point theo tên hoặc mã.
-3. Chọn kiểu biểu đồ; nhập giới hạn dưới/trên nếu dùng đồng hồ hoặc thanh mức.
-4. Đặt tên rồi chọn **Tạo và mở dashboard**.
+Point logic/văn bản dùng chỉ số hoặc bảng. Xu hướng cần point số có bật lưu lịch sử. Đồng hồ và thanh mức không áp dụng cho Boolean/văn bản. Dashboard cập nhật mỗi 5 giây, dùng datasource báo cáo chỉ đọc và phiên đăng nhập RallyX hiện tại.
 
-Dashboard được lưu trong Grafana và xuất hiện ở **Dashboard của bạn** sau khi tải lại. Chọn **Chỉnh sửa nâng cao trong Grafana** để thêm panel, đổi bố cục và tùy chỉnh các kiểu biểu đồ khác. Tín hiệu không bật lưu lịch sử chỉ có thể xem giá trị hiện tại cho tới khi bật lịch sử trong cấu hình tín hiệu. Biểu đồ xu hướng mặc định xem một giờ gần nhất và cập nhật mỗi 5 giây.
+## Đổi bố cục
 
-## Kéo thả và nhiều point
+Chọn **Tùy chỉnh / kéo thả**. Cửa sổ riêng hiển thị bản xem dữ liệu trên lưới. Kéo thanh tiêu đề để di chuyển, kéo góc dưới phải để đổi kích thước; phím mũi tên cũng hỗ trợ. Chọn biểu đồ để đổi tên, kích thước hoặc bỏ khỏi dashboard. **Hoàn tác** khôi phục thao tác trước; **Lưu dashboard** áp dụng bố cục. Xung đột phiên bản giữ lại bản đang sửa và báo lỗi.
 
-Mở dashboard đã lưu rồi chọn **Tùy chỉnh / kéo thả**.
+Các panel nâng cao hoặc dashboard mẫu được quản lý bằng cấu hình dùng liên kết **Grafana**. Không có thao tác ghi xuống thiết bị.
 
-- Chọn **Thêm ô dữ liệu**, chọn thiết bị, point và kiểu hiển thị. Có thể thêm point từ nhiều thiết bị vào cùng dashboard.
-- Kéo thanh tiêu đề của ô để chuyển vị trí trên lưới. Kéo góc dưới bên phải để đổi kích thước. Các ô va nhau sẽ được đẩy xuống.
-- Chọn một ô để đổi tên, chiều rộng, chiều cao hoặc xóa ô. Phím mũi tên trên nút kéo cũng hỗ trợ sắp xếp và thay đổi kích thước.
-- **Hoàn tác** khôi phục thao tác trước đó; **Lưu dashboard** ghi bố cục vào Grafana. Đóng trình chỉnh sửa để xem dữ liệu thật.
+## Lưu và mở lại
 
-Nếu người khác đã lưu dashboard trong lúc anh đang chỉnh, hệ thống báo xung đột và giữ lại bản đang sửa, không ghi đè bản mới. Dashboard mẫu do cấu hình quản lý và các nhóm/row nâng cao dùng trình chỉnh sửa Grafana. Bố cục lưới có thể cuộn ngang trên màn hình nhỏ.
+Dashboard và bố cục được lưu trên máy chủ. Trình duyệt chỉ nhớ lựa chọn gần nhất riêng theo tài khoản. **Mở tab mới** mang đúng UID dashboard; tải lại vẫn mở đúng bảng. Nếu dashboard chưa xuất hiện trong chỉ mục tìm kiếm, hệ thống tải trực tiếp theo UID đã lưu. Khi danh sách tải lỗi, giao diện báo lỗi và không tự thay bằng một dashboard khác.
 
-## Mở lại dashboard và ý nghĩa bảng theo dõi đơn giản
-
-**Bảng điều khiển → Dashboard đã lưu** là nơi tìm cả dashboard Grafana và các bảng theo dõi đơn giản đã tạo trước đây. Bảng theo dõi đơn giản gồm những chỉ số, đồng hồ, trạng thái hoặc biểu đồ đã ghim từ point; đây là chức năng trước đây có tên “Ô dữ liệu”. Menu riêng đã được bỏ để tránh hai nơi tạo/tìm dashboard.
-
-Lựa chọn gần nhất được nhớ riêng cho tài khoản trong trình duyệt hiện tại. **Mở dashboard trong tab mới** tạo liên kết chứa đúng mã dashboard; tải lại trang vẫn mở lại bảng đó. Khi quay lại tab, danh sách được làm mới; trình chỉnh sửa đang mở không bị đổi sang bảng khác. Dữ liệu dashboard vẫn lấy từ máy chủ, không lưu thay thế trong bộ nhớ của tab. Nếu danh sách tải lỗi, giao diện báo lỗi và cho làm mới thay vì kết luận chưa có dashboard.
+Dashboard Grafana dùng quyền của tổ chức cục bộ; các bảng theo dõi đơn giản cũ vẫn thuộc tài khoản đã tạo. V1 chưa có phân tách tenant SaaS.

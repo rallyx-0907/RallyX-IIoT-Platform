@@ -1,8 +1,12 @@
 # Bảng điều khiển tùy chỉnh và quản lý tín hiệu
 
-## Tạo bảng điều khiển
+## Tạo dashboard nhiều thiết bị
 
-Mở **Bảng điều khiển** trên thanh điều hướng. Chọn **Tạo bảng điều khiển…**, nhập tên và lưu. Mỗi tài khoản có danh sách bảng riêng; bảng trống vẫn được lưu. Các ô đã tạo trước nâng cấp nằm trong **Bảng mặc định**.
+Mở **Bảng điều khiển**, chọn **Tạo dashboard**. Cửa sổ riêng cho chọn phạm vi nhà máy/khu vực/máy/thiết bị, nhiều point và kiểu biểu đồ riêng; **Xem trước → Áp dụng** để thêm tab đã lưu. Xem [hướng dẫn dashboard](point-dashboard-workflow.md) để cấu hình và kéo thả.
+
+## Bảng theo dõi đơn giản đã có
+
+Chọn tab của bảng đã lưu để tiếp tục dùng bộ chỉ số cũ. Mỗi tài khoản có danh sách bảng đơn giản riêng; bảng trống vẫn được lưu. Các ô đã tạo trước nâng cấp nằm trong **Bảng mặc định**. Dashboard Grafana mới dùng quyền tổ chức cục bộ.
 
 Trong biểu mẫu, chọn thiết bị và tìm tín hiệu, chọn điểm dữ liệu rồi chọn loại ô:
 

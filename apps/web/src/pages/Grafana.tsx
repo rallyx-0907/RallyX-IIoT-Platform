@@ -1,7 +1,10 @@
-import {useCallback,useEffect,useState,type FormEvent} from 'react';
+import {useCallback,useEffect,useState} from 'react';
 import {request,errorMessage} from '../api/client';
 import {t} from '../i18n';
-import {pointDashboard,type Point} from './pointDashboard';
+import {type Point} from './pointDashboard';
+import {DashboardComposer} from './DashboardComposer';
+import type {workspaceDashboard} from './dashboardWorkspace';
+import './dashboardWorkspace.css';
 import {DashboardEditor} from './DashboardEditor';
 import {DashboardWidgets} from '../components/DashboardWidgets';
 import {dashboardLink,linkedDashboard,rememberedDashboard,rememberDashboard} from './dashboardChoice';
@@ -17,10 +20,7 @@ export function Grafana({userID='current'}:{userID?:string}){
  const [simpleBoards,setSimpleBoards]=useState<{id:string;name:string}[]>([]);const [simpleSelection,setSimpleSelection]=useState<string>();const [listLoading,setListLoading]=useState(true);
  const [editing,setEditing]=useState(false);const [frameRevision,setFrameRevision]=useState(0);
  const [devices,setDevices]=useState<{id:string;name:string}[]>([]);const [points,setPoints]=useState<Point[]>([]);
- const [creating,setCreating]=useState(false);const [busy,setBusy]=useState(false);
- const [device,setDevice]=useState('');const [pointID,setPointID]=useState('');const [search,setSearch]=useState('');
- const [kind,setKind]=useState('timeseries');const [name,setName]=useState('');const [min,setMin]=useState(0);const [max,setMax]=useState(100);
- const point=points.find(p=>p.id===pointID);const numeric=point&&!['bool','boolean','string'].includes(point.data_type);
+ const [creating,setCreating]=useState(false);
  const chooseGrafana=useCallback((board:Board)=>{setSelected(board);setSimpleSelection(undefined);rememberDashboard(userID,{kind:'grafana',id:board.uid});},[userID]);
  const chooseSimple=useCallback((id:string)=>{setSelected(undefined);setSimpleSelection(id);rememberDashboard(userID,{kind:'simple',id});},[userID]);
  useEffect(()=>{let active=true;let statusError='';setError('');setListLoading(true);
@@ -57,39 +57,24 @@ export function Grafana({userID='current'}:{userID?:string}){
   }).catch(e=>{if(active)setError(errorMessage(e));}).finally(()=>{if(active)setListLoading(false);});
   return()=>{active=false;};
  },[revision,userID,chooseGrafana,chooseSimple]);
- useEffect(()=>{const refresh=()=>{if(!editing&&document.visibilityState==='visible')setRevision(n=>n+1);};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[editing]);
- async function create(event:FormEvent){event.preventDefault();if(!point||!status?.can_edit||busy)return;setBusy(true);setError('');try{
-  const result=await grafana<{uid:string;url:string}>('dashboards/db',{method:'POST',body:JSON.stringify({dashboard:pointDashboard(point,name.trim(),kind,min,max),overwrite:false,message:'Tạo từ trình chọn điểm dữ liệu RallyX'})});
+ useEffect(()=>{const refresh=()=>{if(!editing&&!creating&&document.visibilityState==='visible')setRevision(n=>n+1);};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[editing,creating]);
+ async function create(doc:ReturnType<typeof workspaceDashboard>){
+  const result=await grafana<{uid:string;url:string}>('dashboards/db',{method:'POST',body:JSON.stringify({dashboard:doc,overwrite:false,message:'Tạo dashboard nhiều cấp trong RallyX'})});
   if(!result.uid||!/^[-a-zA-Z0-9_]+$/.test(result.uid))throw new Error('Grafana trả về mã dashboard không hợp lệ.');
-  const board={...result,title:name.trim()};setBoards(old=>[board,...old]);chooseGrafana(board);setCreating(false);
- }catch(e){setError(errorMessage(e));}finally{setBusy(false);}}
- return <section className="grafana-page">
-  {!editing&&<div className="toolbar"><p className="muted">Chọn một dashboard đã lưu hoặc tạo dashboard từ điểm dữ liệu của thiết bị.</p>{status?.available&&status.can_edit&&<button className="primary" onClick={()=>{setCreating(true);setError('');}}>Tạo dashboard cho một point</button>}</div>}
+  const board={...result,title:doc.title};setBoards(old=>[board,...old]);chooseGrafana(board);setCreating(false);
+ }
+ return <div className="grafana-page dashboard-workspace">
+  <div className="workspace-navigation"><div className="dashboard-tabs" aria-label="Dashboard đã lưu">
+   {boards.filter(b=>b.uid!=='rallyx-overview').map(b=><button key={b.uid} title={b.title} aria-pressed={selected?.uid===b.uid} className={selected?.uid===b.uid?'active':''} onClick={()=>chooseGrafana(b)}>{b.title}</button>)}
+   {simpleBoards.map(board=><button key={`simple-${board.id}`} aria-label={`${board.name} · Bảng theo dõi đơn giản`} aria-pressed={simpleSelection===board.id} className={simpleSelection===board.id?'active':''} onClick={()=>chooseSimple(board.id)}>{board.name}</button>)}
+  </div>{status?.available&&status.can_edit&&<button className="primary" onClick={()=>{setCreating(true);setError('');}}>Tạo dashboard</button>}<button aria-label="Làm mới danh sách" disabled={listLoading} onClick={()=>setRevision(n=>n+1)}>Làm mới</button></div>
   {error&&<p className="error" role="alert">{t(error)}</p>}
-  {!status&&!error&&<p role="status">Đang tải dashboard…</p>}
-  {status&&!status.available&&<article><p>{t('Grafana is temporarily unavailable. Data collection continues.')}</p><button onClick={()=>setRevision(n=>n+1)}>{t('Retry')}</button></article>}
-  {status&&<>
-   {!editing&&<>
-   {creating&&<article><h2>Tạo dashboard từ điểm dữ liệu</h2><p>Mỗi dashboard dưới đây gắn với đúng một point. Không cần cấu hình datasource hay viết truy vấn.</p><form className="form-grid" onSubmit={create}>
-    <label>1. Thiết bị<select required value={device} onChange={e=>{setDevice(e.target.value);setPointID('');setSearch('');}}><option value="">Chọn thiết bị</option>{devices.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-    <label>Tìm điểm dữ liệu<input disabled={!device} value={search} placeholder="Tên hoặc mã point" onChange={e=>setSearch(e.target.value)}/></label>
-    <label>2. Điểm dữ liệu<select required disabled={!device} value={pointID} onChange={e=>{const p=points.find(p=>p.id===e.target.value);setPointID(e.target.value);if(p){setName(`${devices.find(d=>d.id===device)?.name} · ${p.name}`);setKind(['bool','boolean','string'].includes(p.data_type)||p.store_history===false?'stat':'timeseries');}}}><option value="">Chọn point cần hiển thị</option>{points.filter(p=>p.device_id===device&&(!search||`${p.name} ${p.key}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())||p.id===pointID)).map(p=><option key={p.id} value={p.id}>{p.name} · {p.key} · {p.unit||p.data_type}</option>)}</select></label>
-    <label>3. Kiểu hiển thị<select disabled={!point} value={kind} onChange={e=>setKind(e.target.value)}><option value="stat">Giá trị hiện tại / trạng thái</option>{numeric&&<><option value="timeseries" disabled={point.store_history===false}>Biểu đồ xu hướng theo thời gian</option><option value="gauge">Đồng hồ đo</option><option value="bargauge">Thanh mức giá trị</option></>}<option value="table">Bảng giá trị</option></select></label>
-    {(kind==='gauge'||kind==='bargauge')&&<><label>Giới hạn dưới<input required type="number" value={min} onChange={e=>setMin(Number(e.target.value))}/></label><label>Giới hạn trên<input required type="number" min={min+Number.EPSILON} value={max} onChange={e=>setMax(Number(e.target.value))}/></label></>}
-    <label>4. Tên dashboard<input required maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></label>
-    {point&&<p>Đang chọn: <strong>{devices.find(d=>d.id===device)?.name} → {point.name}</strong> · {point.unit||point.data_type}{point.store_history===false?' · Point chưa bật lưu lịch sử.':''}</p>}
-    <div className="toolbar"><button className="primary" disabled={!point||!name.trim()||busy||((kind==='gauge'||kind==='bargauge')&&max<=min)}>{busy?'Đang tạo…':'Tạo và mở dashboard'}</button><button type="button" disabled={busy} onClick={()=>setCreating(false)}>Hủy</button></div>
-   </form></article>}
-   <article><div className="toolbar"><h2>Dashboard đã lưu</h2><button disabled={listLoading} onClick={()=>setRevision(n=>n+1)}>Làm mới danh sách</button></div>
-    {listLoading&&<p role="status">Đang tải các dashboard đã lưu…</p>}
-    {!listLoading&&!error&&!boards.some(b=>b.uid!=='rallyx-overview')&&!simpleBoards.length&&<p>Chưa có dashboard riêng. Chọn “Tạo dashboard cho một point” để bắt đầu.</p>}
-    <div className="toolbar">{boards.filter(b=>b.uid!=='rallyx-overview').map(b=><button key={b.uid} className={selected?.uid===b.uid?'primary':'secondary'} onClick={()=>chooseGrafana(b)}>{b.title}</button>)}</div>
-    {simpleBoards.length>0&&<><h3>Bảng theo dõi đơn giản đã lưu</h3><p className="muted">Các bảng gồm chỉ số, đồng hồ và biểu đồ từ point đã tạo trước đây. Chọn tên bảng để xem lại.</p><div className="toolbar">{simpleBoards.map(board=><button key={board.id} aria-label={`${board.name} · Bảng theo dõi đơn giản`} className={simpleSelection===board.id?'primary':'secondary'} onClick={()=>chooseSimple(board.id)}>{board.name}</button>)}</div></>}
-    {status.available&&<details><summary>Tham khảo và tùy chỉnh nâng cao</summary><div className="toolbar"><button onClick={()=>chooseGrafana({uid:'rallyx-overview',title:'Dashboard mẫu tổng hợp',url:'/d/rallyx-overview/rallyx'})}>Xem dashboard mẫu tổng hợp</button><a href="/grafana/" target="_blank" rel="noopener noreferrer">{t(status.can_edit?'Open Grafana editor':'Open Grafana')}</a></div></details>}
-   </article>
-   </>}
-   {simpleSelection!==undefined&&<><div className="toolbar"><h2>{simpleBoards.find(board=>board.id===simpleSelection)?.name||'Bảng theo dõi đơn giản'}</h2><a href={dashboardLink({kind:'simple',id:simpleSelection})} target="_blank" rel="noopener noreferrer">Mở dashboard trong tab mới</a></div><p className="muted">Bảng theo dõi gồm các chỉ số và biểu đồ đã ghim từ point. Mỗi thay đổi được lưu vào tài khoản đang đăng nhập.</p><DashboardWidgets key={simpleSelection} initialBoardID={simpleSelection} onBoardSelect={chooseSimple}/></>}
-   {selected&&(editing?<DashboardEditor uid={selected.uid} points={points} devices={devices} api={grafana} onClose={()=>{setEditing(false);setFrameRevision(n=>n+1);}} onSaved={title=>{setSelected({...selected,title});setBoards(old=>old.map(board=>board.uid===selected.uid?{...board,title}:board));setFrameRevision(n=>n+1);}}/>:<><div className="toolbar"><h2>{selected.title}</h2><a href={dashboardLink({kind:'grafana',id:selected.uid})} target="_blank" rel="noopener noreferrer">Mở dashboard trong tab mới</a><button onClick={()=>setSelected(undefined)}>Đóng dashboard</button>{status.can_edit&&<button className="primary" onClick={()=>setEditing(true)}>Tùy chỉnh / kéo thả</button>}{status.can_edit&&<a href={`/grafana/d/${encodeURIComponent(selected.uid)}`} target="_blank" rel="noopener noreferrer">Chỉnh sửa nâng cao trong Grafana</a>}</div><iframe key={`${selected.uid}-${frameRevision}`} title={t('Grafana dashboards')} src={`/grafana/d/${encodeURIComponent(selected.uid)}?kiosk`} style={{width:'100%',height:'75vh',minHeight:600,border:'1px solid #dce3ec',borderRadius:8}}/></>)}
-  </>}
- </section>;
+  {listLoading&&!selected&&simpleSelection===undefined&&<p role="status">Đang tải các dashboard đã lưu…</p>}
+  {status&&!status.available&&<p className="warning">{t('Grafana is temporarily unavailable. Data collection continues.')} <button onClick={()=>setRevision(n=>n+1)}>{t('Retry')}</button></p>}
+  {!listLoading&&!selected&&simpleSelection===undefined&&<div className="dashboard-empty"><span>▥</span><h2>Không gian giám sát của nhà máy</h2><p>Tạo dashboard theo nhà máy, khu vực hoặc máy. Kết hợp chỉ số, đồng hồ và biểu đồ của nhiều thiết bị trên cùng một bảng.</p>{status?.available&&<button onClick={()=>chooseGrafana({uid:'rallyx-overview',title:'Tổng quan hệ thống',url:'/d/rallyx-overview'})}>Xem dashboard tổng quan</button>}</div>}
+  {selected&&<><div className="workspace-actions"><strong>{selected.title}</strong><span>Dữ liệu hiện trường · Tự cập nhật 5 giây</span><div><a href={dashboardLink({kind:'grafana',id:selected.uid})} target="_blank" rel="noopener noreferrer">Mở tab mới ↗</a>{status?.can_edit&&<button onClick={()=>setEditing(true)}>Tùy chỉnh / kéo thả</button>}{status?.can_edit&&<a href={`/grafana/d/${encodeURIComponent(selected.uid)}`} target="_blank" rel="noopener noreferrer">Grafana ↗</a>}</div></div><iframe key={`${selected.uid}-${frameRevision}`} title={t('Grafana dashboards')} src={`/grafana/d/${encodeURIComponent(selected.uid)}?kiosk&theme=dark`} className="dashboard-frame"/></>}
+  {simpleSelection!==undefined&&<DashboardWidgets key={simpleSelection} initialBoardID={simpleSelection} onBoardSelect={chooseSimple}/>}
+  {creating&&<DashboardComposer points={points} devices={devices} onClose={()=>setCreating(false)} onApply={create}/>}
+  {selected&&editing&&<div className="editor-modal-backdrop" role="dialog" aria-modal="true" aria-label="Cấu hình bố cục dashboard"><DashboardEditor uid={selected.uid} points={points} devices={devices} api={grafana} onClose={()=>{setEditing(false);setFrameRevision(n=>n+1);}} onSaved={title=>{setSelected({...selected,title});setBoards(old=>old.map(board=>board.uid===selected.uid?{...board,title}:board));setFrameRevision(n=>n+1);}}/></div>}
+ </div>;
 }

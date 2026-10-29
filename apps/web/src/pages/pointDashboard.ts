@@ -1,4 +1,4 @@
-export type Point={id:string;name:string;data_type:string;unit?:string;store_history?:boolean;device_id?:string;key?:string};
+export type Point={id:string;name:string;data_type:string;unit?:string;semantic?:string;store_history?:boolean;device_id?:string;device_name?:string;key?:string};
 export function pointDashboard(point:Point,title:string,type:string,min:number,max:number){
  if(!['stat','timeseries','gauge','bargauge','table'].includes(type))throw new Error('Kiểu biểu đồ không hợp lệ.');
  if((type==='gauge'||type==='bargauge')&&(!Number.isFinite(min)||!Number.isFinite(max)||max<=min))throw new Error('Giới hạn trên phải lớn hơn giới hạn dưới.');
