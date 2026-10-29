@@ -89,7 +89,7 @@ test('Native entity/profile/template configuration, real ingestion, visual editi
   assert.deepEqual(template.document.pages[0].widgets.slice(0,3).map(w=>[w.layout.x,w.layout.y]),[[0,0],[8,0],[16,0]],'compact first row');
   assert.ok(!tagIDs.some(id=>JSON.stringify(template.document).includes(id)),'shared template has no physical IDs');assert.equal((await runtime(a.id)).widgets[0].value,12);
   const b=await createEntity('Máy nén B '+suffix,area.id,profile.id);await bind(b,tagIDs[1]);
-  await click('Thư viện dashboard');await click(templateName);await click('Gán cho entity hiện tại');await until(()=>evaluate("!document.querySelector('dialog')"),'same template assigned to second entity');
+  await click('Thư viện dashboard');await click(templateName);await click('Dùng cho mục đang chọn');await until(()=>evaluate("!document.querySelector('dialog')"),'same template assigned to second entity');
   const second=await runtime(b.id);assert.equal(second.assignment.template_id,saved.id);assert.equal(second.widgets[0].value,27);
   await navigate(a.id);await until(()=>evaluate("document.querySelector('.native-canvas .native-number')?.textContent.includes('12')"),'first entity has own mapped data');
   await navigate(b.id);await until(()=>evaluate("document.querySelector('.native-canvas .native-number')?.textContent.includes('27')"),'second entity context changes data');
