@@ -5,6 +5,7 @@ import (
 	"rallyx.local/core/internal/auth"
 	"strings"
 	"testing"
+	"time"
 
 	"rallyx.local/core/internal/testutil"
 )
@@ -84,6 +85,15 @@ func TestEntityPhysicalOwnershipCreation(t *testing.T) {
 	if err != nil || renamed.Name != "Renamed physical machine" {
 		t.Fatal("reverse bridge lost native entity identity")
 	}
+	off := false
+	disabled, err := s.SaveEntity(ctx, "", EntityInput{Name: "Disabled native asset", TypeKey: "asset", ParentID: area.ID, PhysicalKind: "assets", Enabled: &off})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var physicalEnabled bool
+	if err = pool.QueryRow(ctx, "SELECT enabled FROM assets WHERE id=$1", disabled.LegacyID).Scan(&physicalEnabled); err != nil || physicalEnabled {
+		t.Fatal("disabled native creation enabled physical asset")
+	}
 }
 
 func TestEntityLegacyConfigurationRemainsConsistent(t *testing.T) {
@@ -144,6 +154,20 @@ func TestEntityLegacyConfigurationRemainsConsistent(t *testing.T) {
 	var status string
 	if err = pool.QueryRow(ctx, "SELECT status FROM devices WHERE id=$1", device.LegacyID).Scan(&status); err != nil || status != "CONNECTED" {
 		t.Fatalf("metadata edit reset device connectivity: %s %v", status, err)
+	}
+	var configuredAt, afterEdit time.Time
+	if err = pool.QueryRow(ctx, "SELECT updated_at FROM devices WHERE id=$1", device.LegacyID).Scan(&configuredAt); err != nil {
+		t.Fatal(err)
+	}
+	device, err = s.GetEntity(ctx, device.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SaveEntity(ctx, device.ID, EntityInput{Name: device.Name, Code: "Native-only code", TypeKey: device.TypeKey, ParentID: asset.ID, Revision: device.Revision, Metadata: device.Metadata}); err != nil {
+		t.Fatal(err)
+	}
+	if err = pool.QueryRow(ctx, "SELECT updated_at FROM devices WHERE id=$1", device.LegacyID).Scan(&afterEdit); err != nil || !afterEdit.Equal(configuredAt) {
+		t.Fatal("semantic edit rewrote physical configuration and would restart adapter")
 	}
 	another, err := s.SaveEntity(ctx, "", EntityInput{Name: "Other area", TypeKey: "area", ParentID: site.ID, PhysicalKind: "areas"})
 	if err != nil {

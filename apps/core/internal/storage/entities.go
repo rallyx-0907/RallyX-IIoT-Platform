@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -282,7 +283,7 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 		if _, err = tx.Exec(ctx, "SELECT set_config('rallyx.entity_sync','off',true)"); err != nil {
 			return zero, err
 		}
-		if old.LegacyKind == "assets" || old.LegacyKind == "devices" {
+		if (old.LegacyKind == "assets" || old.LegacyKind == "devices") && (old.Name != in.Name || old.Enabled != enabled || !reflect.DeepEqual(old.Metadata, in.Metadata)) {
 			actor, _ := ctx.Value(entityActorKey{}).(string)
 			if actor == "" {
 				return zero, fmt.Errorf("%w: authenticated physical configuration required", ErrValidation)
@@ -295,8 +296,10 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 			if _, err = s.write(ctx, tx, old.LegacyKind, old.LegacyID, body, actor); err != nil {
 				return zero, err
 			}
-		} else if _, err = tx.Exec(ctx, "UPDATE "+old.LegacyKind+" SET name=$2 WHERE id=$1", old.LegacyID, in.Name); err != nil {
-			return zero, err
+		} else if old.Name != in.Name {
+			if _, err = tx.Exec(ctx, "UPDATE "+old.LegacyKind+" SET name=$2 WHERE id=$1", old.LegacyID, in.Name); err != nil {
+				return zero, err
+			}
 		}
 	}
 	out, err := readEntity(tx.QueryRow(ctx, entitySelect+" WHERE e.id=$1", id))

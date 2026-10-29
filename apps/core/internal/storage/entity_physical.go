@@ -19,6 +19,10 @@ func (s Registry) createEntityPhysical(ctx context.Context, tx pgx.Tx, entityID,
 		return id, nil
 	}
 	var err error
+	enabled := true
+	if in.Enabled != nil {
+		enabled = *in.Enabled
+	}
 	switch in.PhysicalKind {
 	case "sites":
 		_, err = tx.Exec(ctx, "INSERT INTO sites(id,name) VALUES($1,$2)", physicalID, in.Name)
@@ -29,11 +33,14 @@ func (s Registry) createEntityPhysical(ctx context.Context, tx pgx.Tx, entityID,
 		}
 		_, err = tx.Exec(ctx, "INSERT INTO areas(id,site_id,name) VALUES($1,$2,$3)", physicalID, owner, in.Name)
 	case "assets":
+		if !valid("object", in.Metadata) {
+			return ErrValidation
+		}
 		owner, e := anchor("areas")
 		if e != nil {
 			return e
 		}
-		_, err = tx.Exec(ctx, "INSERT INTO assets(id,area_id,name,type,metadata) VALUES($1,$2,$3,$4,$5)", physicalID, owner, in.Name, in.TypeKey, in.Metadata)
+		_, err = tx.Exec(ctx, "INSERT INTO assets(id,area_id,name,type,metadata,enabled) VALUES($1,$2,$3,$4,$5,$6)", physicalID, owner, in.Name, in.TypeKey, in.Metadata, enabled)
 	case "devices":
 		owner, e := anchor("assets")
 		if e != nil {
@@ -47,7 +54,7 @@ func (s Registry) createEntityPhysical(ctx context.Context, tx pgx.Tx, entityID,
 		if address == "" {
 			address = "1"
 		}
-		body := map[string]any{"id": physicalID, "asset_id": owner, "name": in.Name, "connection_id": in.ConnectionID, "protocol_device_address": address, "metadata": in.Metadata}
+		body := map[string]any{"id": physicalID, "asset_id": owner, "name": in.Name, "connection_id": in.ConnectionID, "protocol_device_address": address, "metadata": in.Metadata, "enabled": enabled}
 		if in.AdapterTemplateID != "" {
 			body["template_id"] = in.AdapterTemplateID
 		}
