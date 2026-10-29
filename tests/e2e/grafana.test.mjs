@@ -62,6 +62,7 @@ async function checkBrowser(){
   async function select(label,value){await evaluate(`(()=>{const el=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith(${JSON.stringify(label)})).querySelector('select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('change',{bubbles:true}));})()`);await pause(200);}
   await until(()=>evaluate(`document.querySelector('form select')?.options.length>1`),'loaded devices');
   await select('1. Thiết bị',chosen.device_id);await select('2. Điểm dữ liệu',chosen.id);
+  if(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE)await evaluate(`(()=>{const input=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.startsWith('4. Tên dashboard')).querySelector('input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(process.env.RALLYX_GRAFANA_DASHBOARD_TITLE)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tạo và mở dashboard').click()`);
   await until(()=>evaluate(`!!document.querySelector('iframe')`),'saved point dashboard iframe');
   await evaluate(`document.querySelector('iframe').scrollIntoView({block:'start'})`);
@@ -77,5 +78,31 @@ async function checkBrowser(){
   assert.equal(await evaluate(`document.querySelector('iframe').contentDocument.querySelectorAll('input[type="password"]').length`),0,'no second login');
   const cookies=await send('Network.getAllCookies');assert.equal(cookies.cookies.some(c=>c.name==='grafana_session'),false,'no independent Grafana session');
   mkdirSync('.tools/browser-evidence',{recursive:true});const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});writeFileSync('.tools/browser-evidence/grafana-native.png',Buffer.from(shot.data,'base64'));
+  if(process.env.RALLYX_GRAFANA_LAYOUT==='true'){
+   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tùy chỉnh / kéo thả').click()`);
+   await until(()=>evaluate(`!!document.querySelector('[aria-label="Di chuyển ô 1"]')`),'layout editor loaded');
+   async function drag(label,dx,dy){
+    await evaluate(`document.querySelector('[aria-label="'+${JSON.stringify(label)}+'"').scrollIntoView({block:'center'})`);await pause(150);
+    const r=await evaluate(`(()=>{const r=document.querySelector('[aria-label="'+${JSON.stringify(label)}+'"').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:r.x,y:r.y});await send('Input.dispatchMouseEvent',{type:'mousePressed',x:r.x,y:r.y,button:'left',clickCount:1});
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:r.x+dx,y:r.y+dy,button:'left',buttons:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:r.x+dx,y:r.y+dy,button:'left',clickCount:1});await pause(200);
+   }
+   const width=await evaluate(`document.querySelector('.editor-canvas').getBoundingClientRect().width`);
+   await drag('Đổi kích thước ô 1',-width/2,0);await drag('Di chuyển ô 1',width/4,64);
+   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Thêm ô dữ liệu')).click()`);
+   const other=available.find(p=>p.id!==chosen.id&&p.quality==='GOOD'&&!['bool','string'].includes(p.data_type))||chosen;
+   await select('Thiết bị',other.device_id);await select('Điểm dữ liệu',other.id);await select('Kiểu hiển thị','gauge');
+   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Thêm vào dashboard').click()`);
+   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Lưu dashboard').click()`);
+   await until(()=>evaluate(`document.body.innerText.includes('Đã lưu bố cục dashboard.')`),'layout save');
+   const saved=(await api('/grafana/api/dashboards/uid/'+uid)).dashboard;assert.equal(saved.panels.length,3);assert.equal(saved.panels[0].gridPos.w,12);assert.equal(saved.panels[0].gridPos.x,6);assert.equal(saved.panels[0].gridPos.y,2);assert.equal(saved.panels[2].type,'gauge');assert.ok(saved.panels[2].targets[0].rawSql.includes("tag_id = '"+other.id+"'"));
+   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Đóng trình chỉnh sửa').click()`);
+   await evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Tùy chỉnh / kéo thả').click()`);
+   await until(()=>evaluate(`document.querySelectorAll('.editor-tile').length===3`),'saved layout reopened');
+   assert.equal(await evaluate(`document.querySelector('.editor-tile').style.left`),'25%');
+   await evaluate(`document.querySelector('.dashboard-editor').scrollIntoView({block:'start'})`);
+   const layoutShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync('.tools/browser-evidence/flexible-editor.png',Buffer.from(layoutShot.data,'base64'));
+   console.log('Pointer drag, resize, add gauge, versioned save and reopen passed');
+  }
  }finally{socket?.close();child.kill('SIGTERM');}
 }
