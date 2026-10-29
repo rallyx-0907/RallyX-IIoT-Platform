@@ -54,6 +54,13 @@ func TestEntityProfilesBindingsAndSharedTemplate(t *testing.T) {
 	if _, err = s.SaveEntityDashboard(ctx, board.ID, EntityDashboardInput{Name: board.Name, Document: doc, Revision: 0, Publish: true}); err == nil {
 		t.Fatal("stale template overwrote published version")
 	}
+	if _, err = s.SaveEntityDashboard(ctx, board.ID, EntityDashboardInput{Name: board.Name, Document: doc, Revision: board.Revision, Publish: true, EntityID: b.ID, AssignmentRevision: 999}); err == nil {
+		t.Fatal("stale assignment accepted")
+	}
+	after, err := s.GetEntityDashboard(ctx, board.ID)
+	if err != nil || after.PublishedVersion != 1 {
+		t.Fatal("failed Apply left a published version behind")
+	}
 	doc.Pages[0].Widgets[0].Binding.Scope = "fixed:demo-sensor-value"
 	if _, err = s.SaveEntityDashboard(ctx, "", EntityDashboardInput{Name: "Bad", Document: doc, Publish: true}); err == nil {
 		t.Fatal("physical source accepted in template")

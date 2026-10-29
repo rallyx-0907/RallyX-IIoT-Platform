@@ -107,6 +107,9 @@ func (s Registry) write(ctx context.Context, tx pgx.Tx, resource, id string, bod
 			body["id"] = auth.RandomID()
 		}
 	} else {
+		if (resource == "areas" && body["site_id"] != nil) || (resource == "assets" && body["area_id"] != nil) {
+			return nil, fmt.Errorf("%w: physical ownership is immutable; use entity grouping within the existing owner", ErrValidation)
+		}
 		for _, key := range []string{"id", "asset_id", "device_id", "tag_id"} {
 			if _, ok := body[key]; ok {
 				return nil, fmt.Errorf("%w: %s is immutable", ErrValidation, key)

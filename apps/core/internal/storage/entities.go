@@ -28,22 +28,27 @@ type EntityTypeInput struct {
 	Revision int             `json:"revision"`
 }
 type EntityInput struct {
-	Name           string         `json:"name"`
-	Code           string         `json:"code"`
-	TypeKey        string         `json:"type_key"`
-	ParentID       string         `json:"parent_id"`
-	Metadata       map[string]any `json:"metadata"`
-	Enabled        *bool          `json:"enabled,omitempty"`
-	Archived       bool           `json:"archived"`
-	Revision       int            `json:"revision"`
-	ProfileID      string         `json:"profile_id"`
-	ProfileVersion int            `json:"profile_version"`
+	Name                  string         `json:"name"`
+	Code                  string         `json:"code"`
+	TypeKey               string         `json:"type_key"`
+	ParentID              string         `json:"parent_id"`
+	Metadata              map[string]any `json:"metadata"`
+	Enabled               *bool          `json:"enabled,omitempty"`
+	Archived              bool           `json:"archived"`
+	Revision              int            `json:"revision"`
+	ProfileID             string         `json:"profile_id"`
+	ProfileVersion        int            `json:"profile_version"`
+	PhysicalKind          string         `json:"physical_kind,omitempty"`
+	ConnectionID          string         `json:"connection_id,omitempty"`
+	ProtocolDeviceAddress string         `json:"protocol_device_address,omitempty"`
+	AdapterTemplateID     string         `json:"adapter_template_id,omitempty"`
 }
 type Entity struct {
 	ID             string         `json:"id"`
 	Name           string         `json:"name"`
 	Code           string         `json:"code"`
 	TypeKey        string         `json:"type_key"`
+	TypeName       string         `json:"type_name"`
 	ParentID       *string        `json:"parent_id"`
 	Metadata       map[string]any `json:"metadata"`
 	Enabled        bool           `json:"enabled"`
@@ -56,7 +61,7 @@ type Entity struct {
 	LegacyID       string         `json:"legacy_id"`
 }
 
-const entitySelect = `SELECT to_jsonb(e)||jsonb_build_object('child_count',(SELECT count(*) FROM entities c WHERE c.parent_id=e.id AND NOT c.archived),'legacy_kind',COALESCE(r.resource_kind,''),'legacy_id',COALESCE(r.resource_id,'')) FROM entities e LEFT JOIN entity_legacy_refs r ON r.entity_id=e.id `
+const entitySelect = `SELECT to_jsonb(e)||jsonb_build_object('type_name',(SELECT name FROM entity_types WHERE key=e.type_key),'child_count',(SELECT count(*) FROM entities c WHERE c.parent_id=e.id AND NOT c.archived),'legacy_kind',COALESCE(r.resource_kind,''),'legacy_id',COALESCE(r.resource_id,'')) FROM entities e LEFT JOIN entity_legacy_refs r ON r.entity_id=e.id `
 
 func readEntity(row pgx.Row) (Entity, error) {
 	var raw []byte
@@ -179,8 +184,16 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 	}
 	var old Entity
 	creating := id == ""
+	physicalID := ""
 	if creating {
 		id = auth.RandomID()
+		if in.PhysicalKind != "" {
+			if in.PhysicalKind != "sites" && in.PhysicalKind != "areas" && in.PhysicalKind != "assets" && in.PhysicalKind != "devices" {
+				return zero, ErrValidation
+			}
+			physicalID = id
+			id = "legacy:" + in.PhysicalKind + ":" + physicalID
+		}
 	} else {
 		old, err = readEntity(tx.QueryRow(ctx, entitySelect+" WHERE e.id=$1 FOR UPDATE OF e", id))
 		if err != nil {
@@ -218,31 +231,14 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 			return zero, fmt.Errorf("%w: reparent or archive children first", ErrValidation)
 		}
 	}
-	if !creating && old.LegacyKind != "" {
-		oldParent := ""
+	if !creating {
+		previousParent := ""
 		if old.ParentID != nil {
-			oldParent = *old.ParentID
+			previousParent = *old.ParentID
 		}
-		if oldParent != in.ParentID {
-			// Grouping can change, but the nearest physical ownership anchor must stay the same.
-			kind := map[string]string{"areas": "sites", "assets": "areas", "devices": "assets"}[old.LegacyKind]
-			if kind != "" {
-				anchor := func(parent string) (string, error) {
-					var result string
-					err := tx.QueryRow(ctx, `WITH RECURSIVE a AS (SELECT id,parent_id,0 AS depth FROM entities WHERE id=$1 UNION ALL SELECT e.id,e.parent_id,a.depth+1 FROM entities e JOIN a ON e.id=a.parent_id WHERE a.depth<64) SELECT COALESCE((SELECT r.resource_id FROM a JOIN entity_legacy_refs r ON r.entity_id=a.id WHERE r.resource_kind=$2 ORDER BY a.depth LIMIT 1),'')`, parent, kind).Scan(&result)
-					return result, err
-				}
-				before, e := anchor(oldParent)
-				if e != nil {
-					return zero, e
-				}
-				after, e := anchor(in.ParentID)
-				if e != nil {
-					return zero, e
-				}
-				if before != after {
-					return zero, fmt.Errorf("%w: physical ownership must remain in the original site/area/asset", ErrValidation)
-				}
+		if previousParent != in.ParentID {
+			if err = validateEntityOwnershipMove(ctx, tx, id, in.ParentID); err != nil {
+				return zero, err
 			}
 		}
 	}
@@ -274,6 +270,11 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 	if err != nil {
 		return zero, err
 	}
+	if creating && physicalID != "" {
+		if err = s.createEntityPhysical(ctx, tx, id, physicalID, in); err != nil {
+			return zero, err
+		}
+	}
 	if old.LegacyKind != "" {
 		if in.Archived != old.Archived {
 			return zero, fmt.Errorf("%w: archive physical resources through device/asset lifecycle", ErrValidation)
@@ -281,7 +282,20 @@ func (s Registry) SaveEntity(ctx context.Context, id string, in EntityInput) (En
 		if _, err = tx.Exec(ctx, "SELECT set_config('rallyx.entity_sync','off',true)"); err != nil {
 			return zero, err
 		}
-		if _, err = tx.Exec(ctx, "UPDATE "+old.LegacyKind+" SET name=$2 WHERE id=$1", old.LegacyID, in.Name); err != nil {
+		if old.LegacyKind == "assets" || old.LegacyKind == "devices" {
+			actor, _ := ctx.Value(entityActorKey{}).(string)
+			if actor == "" {
+				return zero, fmt.Errorf("%w: authenticated physical configuration required", ErrValidation)
+			}
+			// Reuse validation, monitoring pause and device status transitions atomically.
+			body := map[string]any{"name": in.Name, "metadata": in.Metadata}
+			if enabled != old.Enabled {
+				body["enabled"] = enabled
+			}
+			if _, err = s.write(ctx, tx, old.LegacyKind, old.LegacyID, body, actor); err != nil {
+				return zero, err
+			}
+		} else if _, err = tx.Exec(ctx, "UPDATE "+old.LegacyKind+" SET name=$2 WHERE id=$1", old.LegacyID, in.Name); err != nil {
 			return zero, err
 		}
 	}

@@ -290,6 +290,20 @@ func (s Registry) sourceHistory(ctx context.Context, source metricSource, from, 
 	}
 	return out, rows.Err()
 }
+func combineSourceHistory(series []RuntimeSeries, sources []metricSource, aggregation string) []RuntimePoint {
+	unique := []RuntimeSeries{}
+	seen := map[string]bool{}
+	for i, source := range sources {
+		if source.TagID != "" && seen[source.TagID] {
+			continue
+		}
+		if source.TagID != "" {
+			seen[source.TagID] = true
+		}
+		unique = append(unique, series[i])
+	}
+	return combineHistory(unique, aggregation, len(unique))
+}
 func combineHistory(series []RuntimeSeries, aggregation string, expected int) []RuntimePoint {
 	buckets := map[int64][]float64{}
 	bad := map[int64]bool{}
@@ -362,6 +376,10 @@ func (s Registry) DashboardRuntime(ctx context.Context, id string, in RuntimeInp
 	if in.Document != nil {
 		out.Document = *in.Document
 		if err = ValidateDashboardDocument(out.Document); err != nil {
+			return out, err
+		}
+		_, out.Assignment, err = s.ResolveEntityDashboard(ctx, id)
+		if err != nil {
 			return out, err
 		}
 	} else {
@@ -475,7 +493,7 @@ func (s Registry) DashboardRuntime(ctx context.Context, id string, in RuntimeInp
 						result.Series[i].Points = points
 					}
 					if w.Aggregation != "" && w.Aggregation != "last" && w.Aggregation != "count" && len(result.Series) > 0 {
-						points := combineHistory(result.Series, w.Aggregation, result.Expected)
+						points := combineSourceHistory(result.Series, sources, w.Aggregation)
 						result.Series = []RuntimeSeries{{Name: w.Title, Metric: w.Binding.Metric, Unit: result.Unit, Quality: result.Quality, Points: points}}
 					}
 				}

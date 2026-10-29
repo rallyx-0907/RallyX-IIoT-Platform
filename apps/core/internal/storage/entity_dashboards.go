@@ -52,10 +52,12 @@ type DashboardDocument struct {
 	Pages         []DashboardPage `json:"pages"`
 }
 type EntityDashboardInput struct {
-	Name     string            `json:"name"`
-	Document DashboardDocument `json:"document"`
-	Revision int               `json:"revision"`
-	Publish  bool              `json:"publish"`
+	Name               string            `json:"name"`
+	Document           DashboardDocument `json:"document"`
+	Revision           int               `json:"revision"`
+	Publish            bool              `json:"publish"`
+	EntityID           string            `json:"entity_id,omitempty"`
+	AssignmentRevision int               `json:"assignment_revision"`
 }
 type EntityDashboard struct {
 	ID               string            `json:"id"`
@@ -192,6 +194,34 @@ func (s Registry) SaveEntityDashboard(ctx context.Context, id string, in EntityD
 	if in.Publish {
 		if _, err = tx.Exec(ctx, "INSERT INTO entity_dashboard_versions(template_id,version,document) VALUES($1,$2,$3)", id, published, in.Document); err != nil {
 			return out, err
+		}
+	}
+	if in.EntityID != "" {
+		if !in.Publish {
+			return out, ErrValidation
+		}
+		var active bool
+		if err = tx.QueryRow(ctx, "SELECT NOT archived FROM entities WHERE id=$1 FOR UPDATE", in.EntityID).Scan(&active); err != nil {
+			return out, err
+		}
+		if !active {
+			return out, ErrValidation
+		}
+		var affected int64
+		if in.AssignmentRevision == 0 {
+			tag, e := tx.Exec(ctx, `INSERT INTO entity_dashboard_assignments(entity_id,template_id,template_version) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`, in.EntityID, id, published)
+			err = e
+			affected = tag.RowsAffected()
+		} else {
+			tag, e := tx.Exec(ctx, `UPDATE entity_dashboard_assignments SET template_id=$2,template_version=$3,revision=revision+1 WHERE entity_id=$1 AND revision=$4`, in.EntityID, id, published, in.AssignmentRevision)
+			err = e
+			affected = tag.RowsAffected()
+		}
+		if err != nil {
+			return out, err
+		}
+		if affected != 1 {
+			return out, ErrRevision
 		}
 	}
 	out = EntityDashboard{ID: id, Name: in.Name, Revision: revision, PublishedVersion: published, Document: in.Document}

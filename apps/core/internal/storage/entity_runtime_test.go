@@ -10,6 +10,16 @@ import (
 	"rallyx.local/core/internal/testutil"
 )
 
+func TestCombinedHistoryDeduplicatesPhysicalAliases(t *testing.T) {
+	now := time.Now().UTC()
+	series := []RuntimeSeries{{Points: []RuntimePoint{{TS: now, Quality: "GOOD", Value: float64(10)}}}, {Points: []RuntimePoint{{TS: now, Quality: "GOOD", Value: float64(10)}}}, {Points: []RuntimePoint{{TS: now, Quality: "GOOD", Value: float64(20)}}}}
+	sources := []metricSource{{TagID: "a"}, {TagID: "a"}, {TagID: "b"}}
+	got := combineSourceHistory(series, sources, "sum")
+	if len(got) != 1 || got[0].Quality != "GOOD" || got[0].Value != float64(30) {
+		t.Fatalf("history must match deduplicated current total: %+v", got)
+	}
+}
+
 func TestEntityRuntimeContextQualityAndAggregation(t *testing.T) {
 	pool := testutil.Database(t)
 	ctx := context.Background()
@@ -63,6 +73,9 @@ func TestEntityRuntimeContextQualityAndAggregation(t *testing.T) {
 	}
 	one := run(a.ID, doc)
 	two := run(b.ID, doc)
+	if one.Overview.State != "ONLINE" {
+		t.Fatal("mapped semantic entity does not show communication health")
+	}
 	if one.Widgets[0].Value != float64(10) || two.Widgets[0].Value != float64(20) {
 		t.Fatalf("template context mixed: %+v %+v", one.Widgets, two.Widgets)
 	}
