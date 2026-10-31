@@ -35,10 +35,12 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 	registerHistory(mux, pool, hub)
 	registerAdmin(mux, pool, mqttHealthy)
 	registerConfigurationTools(mux, registry, hub)
+	registerDashboardNativeMigration(mux, registry, hub)
 	registerRules(mux, registry, hub)
 	registerConnectivity(root, registry, hub)
 	registerConnectivityDiagnostics(mux)
 	registerEntityPlatform(mux, registry, hub)
+	registerOnboarding(mux, registry, hub)
 	databaseHealthy := func(ctx context.Context) bool { return pool.Ping(ctx) == nil }
 	health := HealthHandler(databaseHealthy, mqttHealthy)
 	root.Handle("GET /health", health)

@@ -4,6 +4,12 @@ import {EntityDashboards} from './EntityDashboards';
 afterEach(()=>{cleanup();vi.unstubAllGlobals();localStorage.clear();history.replaceState(null,'','/');});
 const user={id:'engineer',username:'engineer',role:'admin' as const,must_change_password:false};
 const entity=(id:string)=>({id,name:id==='a'?'Machine A':'Machine B',type_key:'group',revision:1,enabled:true,archived:false,metadata:{},child_count:0});
+it('keeps engineering controls behind a single admin edit menu',async()=>{
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response('[]')));render(<EntityDashboards user={user} offline={false}/>);
+ expect(screen.queryByRole('button',{name:'Thư viện mẫu dashboard'})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Chỉnh sửa'}));
+ expect(await screen.findByRole('button',{name:'Thư viện mẫu dashboard'})).toBeTruthy();
+});
 it('remembers an entity opened by direct link for subsequent tabs',()=>{
  history.replaceState(null,'','/?entity=linked-machine#dashboards');
  vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(()=>{})));
@@ -17,13 +23,13 @@ it('opens the same semantic template with each selected entity context',async()=
  else if(path.includes('/entities?'))body=path.includes('parent=')&&!path.includes('parent=&')?[]:[entity('a'),entity('b')];
  return new Response(JSON.stringify(body));});vi.stubGlobal('fetch',fetcher);
  render(<EntityDashboards user={user} offline={false}/>);
- await screen.findByText('10');fireEvent.click(screen.getByRole('button',{name:'Mở Machine B'}));await screen.findByText('20');
+ await screen.findByText('10');fireEvent.change(screen.getByLabelText('Nhà máy / vị trí'),{target:{value:'b'}});await screen.findByText('20');
  expect(fetcher.mock.calls.filter(c=>String(c[0]).includes('/dashboard-runtime')).every(c=>!JSON.parse(String(c[1]?.body)).document)).toBe(true);
  expect(localStorage.getItem('rallyx.entity.last.engineer')).toBe('b');
 });
 it('shows configuration separately and cancellation does not save a template',async()=>{
  vi.stubGlobal('fetch',vi.fn(async()=>new Response('[]')));render(<EntityDashboards user={user} offline={false}/>);
- fireEvent.click(await screen.findByRole('button',{name:'Thư viện dashboard'}));
+ fireEvent.click(screen.getByRole('button',{name:'Chỉnh sửa'}));fireEvent.click(await screen.findByRole('button',{name:'Thư viện mẫu dashboard'}));
  await screen.findByRole('dialog');fireEvent.click(screen.getByRole('button',{name:'Đóng'}));
  await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
 });

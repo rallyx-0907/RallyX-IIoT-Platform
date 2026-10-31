@@ -8,12 +8,18 @@ beforeEach(()=>{vi.mocked(request).mockImplementation(async path=>path==='/entit
 it('edits a selected profile as a new version through a separate dialog',async()=>{
  render(<EntitySetup onClose={()=>{}} onSaved={()=>{}}/>);
  await waitFor(()=>expect(screen.getByRole('option',{name:/Điện năng/})).toBeTruthy());
- fireEvent.change(screen.getByLabelText('Profile'),{target:{value:'electric'}});
- fireEvent.click(screen.getByRole('button',{name:'Tạo phiên bản profile'}));
- expect(screen.getByRole('heading',{name:'Phiên bản profile mới'})).toBeTruthy();
- fireEvent.change(screen.getByLabelText('Tên hiển thị'),{target:{value:'Công suất thực'}});
+ fireEvent.change(screen.getByLabelText('Bộ đại lượng'),{target:{value:'electric'}});
+ fireEvent.click(screen.getByRole('button',{name:'Tạo phiên bản'}));
+ expect(screen.getByRole('heading',{name:'Phiên bản bộ đại lượng mới'})).toBeTruthy();
+ fireEvent.change(screen.getByLabelText('Tên đại lượng'),{target:{value:'Công suất thực'}});
+ fireEvent.click(screen.getByText('Mã đại lượng (nâng cao)'));
+ fireEvent.change(screen.getByLabelText('Mã đại lượng'),{target:{value:'custom_power'}});
+ fireEvent.click(screen.getByRole('button',{name:'Thêm đại lượng'}));
+ fireEvent.change(screen.getAllByLabelText('Tên đại lượng')[1],{target:{value:'Điện áp dây'}});
+ fireEvent.click(screen.getAllByText('Mã đại lượng (nâng cao)')[1]);
+ expect((screen.getAllByLabelText('Mã đại lượng')[1] as HTMLInputElement).value).toBe('');
  expect(vi.mocked(request).mock.calls.filter(([,o])=>o?.method==='PUT')).toHaveLength(0);
- fireEvent.click(screen.getByRole('button',{name:'Lưu profile'}));
+ fireEvent.click(screen.getByRole('button',{name:'Lưu bộ đại lượng'}));
  await waitFor(()=>expect(request).toHaveBeenCalledWith('/entity-profiles/electric',expect.objectContaining({method:'PUT',body:expect.stringContaining('Công suất thực')})));
- const body=JSON.parse(vi.mocked(request).mock.calls.find(([p,o])=>p==='/entity-profiles/electric'&&o?.method==='PUT')![1]!.body as string);expect(body.revision).toBe(2);
+ const body=JSON.parse(vi.mocked(request).mock.calls.find(([p,o])=>p==='/entity-profiles/electric'&&o?.method==='PUT')![1]!.body as string);expect(body.revision).toBe(2);expect(body.metrics).toEqual(expect.arrayContaining([expect.objectContaining({key:'custom_power',name:'Công suất thực'}),expect.objectContaining({key:'dien_ap_day',name:'Điện áp dây'})]));
 });

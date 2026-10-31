@@ -36,13 +36,19 @@ test('Native entity/profile/template configuration, real ingestion, visual editi
   send=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++next;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params,sessionId}))});
   evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
   const text=()=>evaluate('document.body.innerText');
+  const clickAliases={'+ Thêm thực thể':'Thêm khu vực / máy','Tạo profile':'Bộ đại lượng nâng cao','Map tín hiệu':'Gán nguồn dữ liệu','Thư viện dashboard':'Thư viện mẫu dashboard','Nhân bản template':'Nhân bản mẫu dashboard','Áp dụng mapping':'Áp dụng nguồn dữ liệu','Thêm loại thực thể':'Thêm loại','Lưu loại thực thể':'Lưu loại','Lưu profile':'Lưu bộ đại lượng','Lưu thực thể':'Lưu vị trí / máy','Đặt làm dashboard mặc định của profile':'Đặt làm dashboard mặc định của bộ đại lượng'};
+  const editMenuItems=new Set(['Thêm khu vực / máy','Cài đặt máy','Gán nguồn dữ liệu','Bộ đại lượng nâng cao','Thư viện mẫu dashboard','Thiết kế / kéo thả','Chuyển bảng theo dõi cũ','Thêm thiết bị cùng loại']);
   async function click(label,scope='document'){
-   const match=`Array.from(${scope}.querySelectorAll('button')).find(b=>b.textContent.trim()===${JSON.stringify(label)}||b.querySelector('strong')?.textContent===${JSON.stringify(label)})`;
-   await until(()=>evaluate(`!!(${match})`),'button '+label);
-   await evaluate(`(()=>{const b=${match};if(b.disabled)throw new Error('Disabled button '+${JSON.stringify(label)});b.click()})()`);await pause(180);
+   const target=clickAliases[label]||label;
+   if(editMenuItems.has(target)&&scope==='document'&&!await evaluate(`!!Array.from(document.querySelectorAll('.native-edit-menu button')).find(b=>b.textContent.trim()===${JSON.stringify(target)})`))await click('Chỉnh sửa');
+   const match=`Array.from(${scope}.querySelectorAll('button')).find(b=>b.textContent.trim()===${JSON.stringify(target)}||b.querySelector('strong')?.textContent===${JSON.stringify(target)})`;
+   await until(()=>evaluate(`!!(${match})`),'button '+target);
+   await evaluate(`(()=>{const b=${match};if(b.disabled)throw new Error('Disabled button '+${JSON.stringify(target)});b.click()})()`);await pause(180);
   }
   async function field(label,value,tag='input',scope="document.querySelector('dialog')"){
-   await evaluate(`(()=>{const el=Array.from(${scope}.querySelectorAll('label')).find(l=>l.textContent.startsWith(${JSON.stringify(label)}))?.querySelector(${JSON.stringify(tag)});if(!el)throw new Error('Missing field '+${JSON.stringify(label)});Object.getOwnPropertyDescriptor(${tag==='select'?'HTMLSelectElement':'HTMLInputElement'}.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('${tag==='select'?'change':'input'}',{bubbles:true}));})()`);await pause(180);
+   const aliases={'Tên thực thể':'Tên vị trí / máy','Loại thực thể':'Loại','Profile':'Bộ đại lượng','Tìm thực thể cha':'Tìm vị trí cha','Thực thể cha':'Vị trí cha','Tên profile':'Tên bộ đại lượng','Metric key':'Mã đại lượng','Tên hiển thị':'Tên đại lượng','Tên template':'Tên mẫu dashboard','Profile mặc định':'Bộ đại lượng mặc định'};const target=aliases[label]||label;
+   if(target==='Mã đại lượng')await evaluate(`(()=>{const d=Array.from(${scope}.querySelectorAll('details')).find(x=>x.querySelector('summary')?.textContent.trim()==='Mã đại lượng (nâng cao)');if(d&&!d.open)d.querySelector('summary').click()})()`);
+   await evaluate(`(()=>{const el=Array.from(${scope}.querySelectorAll('label')).find(l=>l.textContent.startsWith(${JSON.stringify(target)}))?.querySelector(${JSON.stringify(tag)});if(!el)throw new Error('Missing field '+${JSON.stringify(target)});Object.getOwnPropertyDescriptor(${tag==='select'?'HTMLSelectElement':'HTMLInputElement'}.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('${tag==='select'?'change':'input'}',{bubbles:true}));})()`);await pause(180);
   }
   async function close(){await click('Đóng',"document.querySelector('dialog')");await until(()=>evaluate("!document.querySelector('dialog')"),'configuration closed');}
   async function selected(id){await until(()=>evaluate(`new URLSearchParams(location.search).get('entity')===${JSON.stringify(id)} && !!document.querySelector('.native-context-heading')`),'entity context '+id);}
@@ -55,8 +61,8 @@ test('Native entity/profile/template configuration, real ingestion, visual editi
    const matches=await api('/entities?search='+encodeURIComponent(name));const e=matches.find(e=>e.name===name);assert.ok(e);await selected(e.id);return e;
   }
   async function bind(entity,tagID){
-   await click('Map tín hiệu');await field('Tìm nguồn theo tín hiệu / thiết bị','native_'+suffix);await pause(700);
-   await until(()=>evaluate(`Array.from(document.querySelector('dialog select')?.options||[]).some(o=>o.value===${JSON.stringify(tagID)})`),'scoped source search');
+   await click('Map tín hiệu');await field('Thiết bị cung cấp dữ liệu','','select');await field('Tìm nguồn theo tín hiệu / thiết bị','native_'+suffix);await pause(700);
+   await until(()=>evaluate(`Array.from(Array.from(document.querySelector('dialog').querySelectorAll('label')).find(l=>l.textContent.startsWith('Nguồn dữ liệu cho Công suất tác dụng'))?.querySelector('select')?.options||[]).some(o=>o.value===${JSON.stringify(tagID)})`),'scoped source search');
    await field('Nguồn dữ liệu cho Công suất tác dụng',tagID,'select');await click('Áp dụng mapping');await until(()=>evaluate("!document.querySelector('dialog')"),'mapping saved');
    assert.equal((await api(`/entities/${entity.id}/bindings`))[0].tag_id,tagID);
   }
@@ -66,7 +72,7 @@ test('Native entity/profile/template configuration, real ingestion, visual editi
   await click('+ Thêm thực thể');await click('Thêm loại thực thể');await field('Khóa loại',typeKey);await field('Tên loại','Máy nén kiểm chứng');await click('Thêm trường');
   await evaluate(`(()=>{for(const [label,value] of [['Khóa trường 1','rated_power'],['Tên trường 1','Công suất định mức']]){const el=document.querySelector('[aria-label="'+label+'"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));}})()`);
   await evaluate(`(()=>{const el=document.querySelector('[aria-label="Kiểu trường 1"]');el.value='number';el.dispatchEvent(new Event('change',{bubbles:true}));})()`);await click('Lưu loại thực thể');
-  await until(()=>evaluate("document.querySelector('dialog h2')?.textContent==='Thêm thực thể'"),'return to entity setup');await close();
+  await until(()=>evaluate("document.querySelector('dialog h2')?.textContent==='Thêm vị trí / máy'"),'return to entity setup');await close();
   const a=await createEntity('Máy nén A '+suffix,area.id,profile.id);await bind(a,tagIDs[0]);
   const before=(await api('/entity-dashboard-templates')).length;await click('Thiết kế / kéo thả');await field('Tên template',templateName);
   await until(()=>evaluate("!!document.querySelector('.native-inspector') && !!document.querySelector('.native-palette')"),'native builder');
@@ -94,17 +100,17 @@ test('Native entity/profile/template configuration, real ingestion, visual editi
   await navigate(a.id);await until(()=>evaluate("document.querySelector('.native-canvas .native-number')?.textContent.includes('12')"),'first entity has own mapped data');
   await navigate(b.id);await until(()=>evaluate("document.querySelector('.native-canvas .native-number')?.textContent.includes('27')"),'second entity context changes data');
   // The profile default produces a new immutable profile version. Existing pinned entities remain stable.
-  await click('Thư viện dashboard');await click(templateName);await field('Profile mặc định',profile.id,'select');await click('Đặt làm dashboard mặc định của profile');await until(()=>text().then(v=>v.includes('Đã tạo phiên bản profile mới')),'profile default persisted');await close();
+  await click('Thư viện dashboard');await click(templateName);await field('Profile mặc định',profile.id,'select');await click('Đặt làm dashboard mặc định của profile');await until(()=>text().then(v=>v.includes('Đã tạo phiên bản bộ đại lượng mới')),'profile default persisted');await close();
   const newer=(await api('/entity-profiles')).find(p=>p.id===profile.id);assert.equal(newer.revision,2);assert.equal((await api('/entities/'+a.id)).profile_version,1);
   const c=await createEntity('Máy nén C '+suffix,area.id,profile.id);assert.equal((await runtime(c.id)).assignment.template_id,saved.id,'new profile member inherits shared dashboard');
   await navigate(b.id);await click('Thư viện dashboard');await click(templateName);
   const downloadDir='/tmp/rallyx-native-export-'+suffix;await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloadDir});await click('Xuất JSON');
   await until(()=>existsSync(downloadDir+'/rallyx-dashboard-template.json'),'template export');
   const exported=JSON.parse(readFileSync(downloadDir+'/rallyx-dashboard-template.json','utf8'));assert.deepEqual(exported.document,template.document);
-  const beforeClone=(await api('/entity-dashboard-templates')).length;await click('Nhân bản template');await until(()=>evaluate("document.querySelector('dialog h2')?.textContent.includes('template dashboard')"),'unsaved clone');
+  const beforeClone=(await api('/entity-dashboard-templates')).length;await click('Nhân bản template');await until(()=>evaluate("document.querySelector('dialog h2')?.textContent.includes('mẫu dashboard')"),'unsaved clone');
   await click('Đóng',"document.querySelector('dialog')");assert.equal((await api('/entity-dashboard-templates')).length,beforeClone,'cancel clone does not persist');
   await evaluate("document.querySelector('dialog details').open=true");
-  await evaluate(`(()=>{const el=document.querySelector('[aria-label="JSON template"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,${JSON.stringify(JSON.stringify(exported))});el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await evaluate(`(()=>{const el=document.querySelector('[aria-label="JSON mẫu dashboard"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,${JSON.stringify(JSON.stringify(exported))});el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   await click('Mở bản nhập để xem trước');await click('Xem trước');await until(()=>evaluate("document.querySelector('.native-builder-visual .native-number')?.textContent.includes('27')"),'imported semantic template binds current entity');
   assert.equal((await api('/entity-dashboard-templates')).length,beforeClone,'import preview does not persist');await click('Đóng',"document.querySelector('dialog')");await close();
   const aggregate={schema_version:1,pages:[{id:'main',name:'Vận hành khu vực',widgets:[

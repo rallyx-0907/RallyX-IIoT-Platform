@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	unitnames "rallyx.local/core/internal/units"
 	"sort"
 	"time"
 )
@@ -62,12 +63,12 @@ type scopeEntity struct {
 	Effective bool
 }
 type metricSource struct {
-	EntityID, Name, TagID, DataType, Unit, MetricUnit, MetricType, Key string
-	History, PhysicalEnabled, Effective                                bool
-	StaleSeconds                                                       int
-	Value                                                              any
-	Quality                                                            string
-	TS                                                                 *time.Time
+	EntityID, Name, TagID, DataType, Unit, MetricUnit, MetricType, Key, MetricName string
+	History, PhysicalEnabled, Effective                                            bool
+	StaleSeconds                                                                   int
+	Value                                                                          any
+	Quality                                                                        string
+	TS                                                                             *time.Time
 }
 
 const entityScopeCTE = `WITH RECURSIVE ancestors AS (SELECT id,parent_id,enabled,archived,0 AS depth FROM entities WHERE id=$1 UNION ALL SELECT p.id,p.parent_id,p.enabled,p.archived,c.depth+1 FROM entities p JOIN ancestors c ON p.id=c.parent_id WHERE c.depth<64), tree AS (SELECT e.id,e.parent_id,e.name,e.type_key,(e.enabled AND NOT e.archived AND NOT EXISTS(SELECT 1 FROM ancestors WHERE NOT enabled OR archived)) AS effective,0 AS depth FROM entities e WHERE e.id=$1 AND NOT e.archived UNION ALL SELECT e.id,e.parent_id,e.name,e.type_key,(e.enabled AND NOT e.archived AND t.effective),t.depth+1 FROM entities e JOIN tree t ON e.parent_id=t.id WHERE NOT e.archived AND t.depth<64) `
@@ -118,7 +119,7 @@ func (s Registry) metricSources(ctx context.Context, targets []scopeEntity, key 
 	if len(ids) == 0 {
 		return []metricSource{}, nil
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT e.id,e.name,COALESCE(b.tag_id,''),m->>'data_type',COALESCE(m->>'unit',''),COALESCE(t.datatype,''),COALESCE(t.unit,''),COALESCE(t.store_history,false),COALESCE(t.enabled AND t.realtime_enabled AND d.enabled AND a.enabled AND t.deleted_at IS NULL AND d.deleted_at IS NULL AND a.deleted_at IS NULL,false),COALESCE(t.stale_seconds,30),c.value,COALESCE(upper(c.quality),'UNKNOWN'),c.ts FROM entities e JOIN entity_profile_versions p ON p.profile_id=e.profile_id AND p.version=e.profile_version CROSS JOIN LATERAL jsonb_array_elements(p.metrics) m LEFT JOIN entity_metric_bindings b ON b.entity_id=e.id AND b.metric_key=m->>'key' LEFT JOIN tags t ON t.id=b.tag_id LEFT JOIN devices d ON d.id=t.device_id LEFT JOIN assets a ON a.id=t.asset_id LEFT JOIN tag_current_state c ON c.tag_id=t.id WHERE e.id=ANY($1::text[]) AND m->>'key'=$2 ORDER BY e.id`, ids, key)
+	rows, err := s.Pool.Query(ctx, `SELECT e.id,e.name,COALESCE(m->>'name',''),COALESCE(b.tag_id,''),m->>'data_type',COALESCE(m->>'unit',''),COALESCE(t.datatype,''),COALESCE(t.unit,''),COALESCE(t.store_history,false),COALESCE(t.enabled AND t.realtime_enabled AND d.enabled AND a.enabled AND t.deleted_at IS NULL AND d.deleted_at IS NULL AND a.deleted_at IS NULL,false),COALESCE(t.stale_seconds,30),c.value,COALESCE(upper(c.quality),'UNKNOWN'),c.ts FROM entities e JOIN entity_profile_versions p ON p.profile_id=e.profile_id AND p.version=e.profile_version CROSS JOIN LATERAL jsonb_array_elements(p.metrics) m LEFT JOIN entity_metric_bindings b ON b.entity_id=e.id AND b.metric_key=m->>'key' LEFT JOIN tags t ON t.id=b.tag_id LEFT JOIN devices d ON d.id=t.device_id LEFT JOIN assets a ON a.id=t.asset_id LEFT JOIN tag_current_state c ON c.tag_id=t.id WHERE e.id=ANY($1::text[]) AND m->>'key'=$2 ORDER BY e.id`, ids, key)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func (s Registry) metricSources(ctx context.Context, targets []scopeEntity, key 
 	for rows.Next() {
 		var source metricSource
 		var raw json.RawMessage
-		if err = rows.Scan(&source.EntityID, &source.Name, &source.TagID, &source.MetricType, &source.MetricUnit, &source.DataType, &source.Unit, &source.History, &source.PhysicalEnabled, &source.StaleSeconds, &raw, &source.Quality, &source.TS); err != nil {
+		if err = rows.Scan(&source.EntityID, &source.Name, &source.MetricName, &source.TagID, &source.MetricType, &source.MetricUnit, &source.DataType, &source.Unit, &source.History, &source.PhysicalEnabled, &source.StaleSeconds, &raw, &source.Quality, &source.TS); err != nil {
 			return nil, err
 		}
 		source.Effective = effective[source.EntityID]
@@ -142,7 +143,7 @@ func (s Registry) metricSources(ctx context.Context, targets []scopeEntity, key 
 			source.Quality = "UNMAPPED"
 		case !source.Effective || !source.PhysicalEnabled:
 			source.Quality = "DISABLED"
-		case source.DataType != source.MetricType || source.Unit != source.MetricUnit:
+		case source.DataType != source.MetricType || unitnames.Canonical(source.Unit) != unitnames.Canonical(source.MetricUnit):
 			source.Quality = "INCOMPATIBLE"
 		case source.TS == nil:
 			source.Quality = "UNKNOWN"
@@ -152,6 +153,11 @@ func (s Registry) metricSources(ctx context.Context, targets []scopeEntity, key 
 			source.Quality = "STALE"
 		}
 		source.Key = key
+		if registerLabel.MatchString(source.MetricName) {
+			index := 0
+			_, _ = fmt.Sscanf(key, "hr_%d", &index)
+			source.MetricName = signalDisplayName(source.MetricName, index)
+		}
 		if source.Quality != "GOOD" {
 			source.Value = nil
 		}
@@ -161,14 +167,17 @@ func (s Registry) metricSources(ctx context.Context, targets []scopeEntity, key 
 }
 func aggregateMetric(w SemanticWidget, sources []metricSource) RuntimeWidget {
 	out := RuntimeWidget{ID: w.ID, Type: w.Type, Title: w.Title, Quality: "UNMAPPED", Expected: len(sources), Series: []RuntimeSeries{}, Diagnostics: []string{}}
+	if len(sources) > 0 && (w.Title == "" || w.Title == w.Binding.Metric || registerLabel.MatchString(w.Title)) {
+		out.Title = sources[0].MetricName
+	}
 	units := map[string]bool{}
 	kinds := map[string]bool{}
 	values := []any{}
 	seen := map[string]bool{}
 	for _, source := range sources {
-		units[source.MetricUnit] = true
+		units[unitkey(source.MetricUnit)] = true
 		kinds[source.MetricType] = true
-		out.Unit = source.MetricUnit
+		out.Unit = unitnames.Canonical(source.MetricUnit)
 		if source.Quality != "GOOD" {
 			out.Diagnostics = append(out.Diagnostics, source.Name+": "+source.Quality)
 		} else {
@@ -181,14 +190,21 @@ func aggregateMetric(w SemanticWidget, sources []metricSource) RuntimeWidget {
 				out.UpdatedAt = source.TS
 			}
 		}
-		out.Series = append(out.Series, RuntimeSeries{EntityID: source.EntityID, Name: source.Name, Metric: source.Key, Unit: source.MetricUnit, Value: source.Value, Quality: source.Quality, Points: []RuntimePoint{}})
+		name := source.Name
+		if source.MetricName != "" {
+			name = source.MetricName
+			if len(sources) > 1 {
+				name = source.Name + " · " + name
+			}
+		}
+		out.Series = append(out.Series, RuntimeSeries{EntityID: source.EntityID, Name: name, Metric: source.Key, Unit: unitnames.Canonical(source.MetricUnit), Value: source.Value, Quality: source.Quality, Points: []RuntimePoint{}})
 	}
 	if len(units) > 1 || len(kinds) > 1 {
 		out.Quality = "INCOMPATIBLE"
 		out.Diagnostics = append(out.Diagnostics, "Các nguồn khác đơn vị hoặc kiểu dữ liệu; cần cấu hình chuyển đổi.")
 		return out
 	}
-	if w.Presentation.Unit != "" && out.Unit != "" && w.Presentation.Unit != out.Unit {
+	if w.Presentation.Unit != "" && out.Unit != "" && unitkey(w.Presentation.Unit) != unitkey(out.Unit) {
 		out.Quality = "INCOMPATIBLE"
 		out.Diagnostics = append(out.Diagnostics, "Đơn vị hiển thị không phải phép chuyển đổi dữ liệu.")
 		return out
@@ -506,3 +522,5 @@ func (s Registry) DashboardRuntime(ctx context.Context, id string, in RuntimeInp
 	}
 	return out, nil
 }
+
+func unitkey(unit string) string { return unitnames.Canonical(unit) }

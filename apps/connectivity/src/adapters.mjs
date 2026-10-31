@@ -110,6 +110,9 @@ async function mqttAdapter(connection, device, signal) {
   const config = connection.protocol_config ?? {};
   const timeout = Math.max(100, Number(connection.timeout_ms) || 2000);
   const topic = config.topic.replaceAll('{device}', device.protocol_device_address || device.id);
+  const mapped = (device.tags || []).filter(t => typeof t.mapping?.topic === 'string' && !/[+#]/.test(t.mapping.topic));
+  const exactOnly = mapped.length > 0 && mapped.length === (device.tags || []).length;
+  const subscriptions = [...new Set(exactOnly ? mapped.map(t=>t.mapping.topic) : [topic, ...mapped.map(t => t.mapping.topic)])];
   const client = connect(config.broker_url, { ...connection.credentials, ca: config.ca,
     connectTimeout: timeout, reconnectPeriod: 1000, resubscribe: true, queueQoSZero: false,
     protocolVersion: 4, clean: true });
@@ -124,16 +127,20 @@ async function mqttAdapter(connection, device, signal) {
     try {
       const payload = JSON.parse(bytes.toString());
       if (!payload || typeof payload !== 'object') return;
-      if ((topic.includes('#') || topic.includes('+')) && payload.device_id !== device.id) return;
-      if (payload.device_id && payload.device_id !== device.id) return;
+      const matches = mapped.filter(t => t.mapping.topic === receivedTopic && (!t.mapping.device_id || t.mapping.device_id === payload.device_id));
+      if (exactOnly && !matches.length) return;
+      if (!matches.length) {
+        if ((topic.includes('#') || topic.includes('+')) && payload.device_id !== device.id) return;
+        if (payload.device_id && payload.device_id !== device.id) return;
+      }
       if (queue.length >= 1024) { queue.length = 0; overflow = true; pending?.(); return; }
-      queue.push({ ...payload, timestamp: payload.timestamp ?? new Date().toISOString() }); pending?.();
+      queue.push({ payload: { ...payload, timestamp: payload.timestamp ?? new Date().toISOString() }, topic: receivedTopic }); pending?.();
     } catch { /* Ignore malformed field input; read timeout remains visible. */ }
   });
   try {
     await bounded(() => new Promise((resolve, reject) => {
       client.once('error', reject);
-      client.once('connect', () => client.subscribe(topic, { qos: 1 }, error => error ? reject(error) : resolve()));
+      client.once('connect', () => client.subscribe(subscriptions, { qos: 1 }, error => error ? reject(error) : resolve()));
     }), timeout, () => client.end(true));
   } catch (error) { signal?.removeEventListener('abort', abort); client.end(true); throw error; }
   return {
@@ -146,11 +153,15 @@ async function mqttAdapter(connection, device, signal) {
       }
       if (overflow) { overflow = false; throw new Error('MQTT input queue overflow'); }
       if (closed || !queue.length) throw new Error('No fresh MQTT value');
-      const payload = queue.shift();
+      const frame = queue.shift(), payload = frame.payload;
       const readings = [], values = Object.create(null);
       for (const tag of tags) {
+        if (tag.mapping?.topic && (tag.mapping.topic !== frame.topic || (tag.mapping.device_id && tag.mapping.device_id !== payload.device_id))) continue;
+        if (!tag.mapping?.topic && payload.device_id && payload.device_id !== device.id) continue;
         const path = tag.mapping?.path || config.payload_mapping?.[tag.key] || tag.address || tag.key;
-        const raw = getPath(payload, path); const decoded = decodeScalar(raw, tag.data_type);
+        const raw = getPath(payload, path);
+        if (raw === undefined) continue;
+        const decoded = decodeScalar(raw, tag.data_type);
         readings.push({ tag_id: tag.id, raw, decoded }); values[tag.key] = decoded;
       }
       return { values: { ...values }, readings, timestamp: payload.timestamp,

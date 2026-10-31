@@ -41,7 +41,7 @@ class Browser {
     if (response.exceptionDetails) throw new Error(response.exceptionDetails.text + ': ' + response.exceptionDetails.exception?.description);
     return response.result.value;
   }
-  async text(value) { await until(() => this.eval(value => document.body.innerText.includes(value), value), `visible ${value}`); }
+  async text(value) { await until(() => this.eval(value => !!document.body?.innerText.includes(value), value), `visible ${value}`); }
   async click(text, rowText = '') {
     await until(() => this.eval((text, rowText) => [...document.querySelectorAll('button')].some(button => !button.disabled && (button.textContent.trim() === text || button.getAttribute('aria-label') === text) && (!rowText || button.closest('tr')?.textContent.includes(rowText))), text, rowText), `enabled button ${text}`);
     await this.eval((text, rowText) => [...document.querySelectorAll('button')].find(button => !button.disabled && (button.textContent.trim() === text || button.getAttribute('aria-label') === text) && (!rowText || button.closest('tr')?.textContent.includes(rowText))).click(), text, rowText);
@@ -111,12 +111,12 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
     await browser.fill('Username', config.ADMIN_USERNAME);
     await browser.fill('Password', config.ADMIN_PASSWORD);
     await browser.click('Sign in');
-    await until(() => browser.eval(() => document.body.innerText.includes('Set your password') || document.body.innerText.includes('Equipment overview')), 'login');
+    await until(() => browser.eval(() => document.body.innerText.includes('Set your password') || document.body.innerText.includes('Dashboards')), 'login');
     if (await browser.eval(() => document.body.innerText.includes('Set your password'))) {
       assert.equal(smokeOnly, false, 'read-only smoke does not change installation passwords');
       const password = randomBytes(24).toString('hex');
       await browser.fill('Current password', config.ADMIN_PASSWORD); await browser.fill('New password', password); await browser.click('Save password');
-      await browser.text('Equipment overview');
+      await browser.text('Dashboards');
       writeFileSync(configPath, readFileSync(configPath, 'utf8').replace(/^ADMIN_PASSWORD=.*$/m, `ADMIN_PASSWORD=${password}`)); config.ADMIN_PASSWORD = password;
     }
     if (smokeOnly) {
@@ -273,33 +273,45 @@ test(smokeOnly ? 'authenticated UI and API smoke without configuration writes' :
       await until(() => browser.eval(name => ![...document.querySelectorAll('tbody tr')].some(row => row.textContent.includes(name)), name), 'alarm clear');
       await browser.click('History · last 24h'); await browser.text(name); await browser.text('Cleared'); sourceOffset = 0;
     });
-    await t.test('pin Value and Trend widgets and retain them through browser refresh', async () => {
-      await browser.page('widgets', 'Saved simple dashboards'); await browser.fill('Pin tag', tag.id); await browser.fill('Widget title', `UI value ${stamp}`); await browser.click('Pin to Dashboard'); await browser.text(`UI value ${stamp}`);
-      await browser.fill('Widget type', 'trend'); await browser.fill('Widget title', `UI trend ${stamp}`); await browser.click('Pin to Dashboard'); await browser.text(`UI trend ${stamp}`);
-      await browser.fill('Pin tag', runTagID); await browser.fill('Widget type', 'status'); await browser.fill('Widget title', `UI status ${stamp}`); await browser.click('Pin to Dashboard'); await browser.text(`UI status ${stamp}`);
+    await t.test('legacy Value, Trend and Status widgets remain visible and read-only after refresh', async () => {
+      await browser.eval(async widgets => {
+        for (const widget of widgets) {
+          const response = await fetch('/api/v1/dashboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(widget) });
+          if (!response.ok) throw new Error(`Legacy widget seed failed: ${response.status} ${await response.text()}`);
+        }
+      }, [
+        { tag_id: tag.id, type: 'value', title: `UI value ${stamp}`, position: 0, settings: {}, board_id: null },
+        { tag_id: tag.id, type: 'trend', title: `UI trend ${stamp}`, position: 1, settings: { range_minutes: 60 }, board_id: null },
+        { tag_id: runTagID, type: 'status', title: `UI status ${stamp}`, position: 2, settings: {}, board_id: null },
+      ]);
+      await browser.page('widgets', 'Saved simple dashboards'); await browser.fill('Dashboard', '');
+      await browser.text(`UI value ${stamp}`); await browser.text(`UI trend ${stamp}`); await browser.text(`UI status ${stamp}`);
+      assert.equal(await browser.eval(() => document.querySelector('.dashboard-builder')), null, 'legacy creator is hidden in read-only mode');
+      assert.equal(await browser.eval(() => document.querySelector('.dashboard-actions')), null, 'legacy widget editing actions are hidden');
       await browser.send('Page.reload'); await browser.text(`UI value ${stamp}`); await browser.text(`UI trend ${stamp}`); await browser.screenshot('dashboard');
       const saved = await browser.eval(async () => (await fetch('/api/v1/dashboard')).json());
-      assert.ok(saved.some(widget => widget.title === `UI value ${stamp}` && widget.tag_id === tag.id), 'pin retains the selected tag identity');
+      assert.ok(saved.some(widget => widget.title === `UI value ${stamp}` && widget.tag_id === tag.id), 'seeded legacy widget retains the selected tag identity');
       assert.ok(saved.some(widget => widget.title === `UI status ${stamp}` && widget.tag_id === runTagID && widget.type === 'status'));
     });
-    await t.test('named dashboards persist numeric gauge settings and widget edits', async () => {
-      await browser.page('widgets', 'Saved simple dashboards');
-      await browser.click('Create dashboard…');
-      await browser.fill('Dashboard name', `UI board ${stamp}`);
-      await browser.click('Create dashboard');
-      await browser.fill('Pin tag', tag.id);
-      await browser.fill('Widget type', 'gauge');
-      await browser.fill('Minimum', '0'); await browser.fill('Maximum', '500');
-      await browser.fill('Widget title', `UI gauge ${stamp}`);
-      await browser.click('Pin to Dashboard');
+    await t.test('legacy named dashboards preserve gauge settings, selection and read-only presentation', async () => {
+      const seeded = await browser.eval(async ({ name, widget }) => {
+        const response = await fetch('/api/v1/dashboard/boards', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) });
+        if (!response.ok) throw new Error(`Legacy board seed failed: ${response.status} ${await response.text()}`);
+        const board = await response.json();
+        const saved = await fetch('/api/v1/dashboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...widget, board_id: board.id }) });
+        if (!saved.ok) throw new Error(`Legacy widget seed failed: ${saved.status} ${await saved.text()}`);
+        return { board, widget: await saved.json() };
+      }, { name: `UI board ${stamp}`, widget: { tag_id: tag.id, type: 'gauge', title: `UI gauge ${stamp}`, position: 0, settings: { min: 0, max: 500, precision: 2 } } });
+      assert.equal(seeded.widget.board_id, seeded.board.id); assert.equal(seeded.widget.settings.max, 500);
+      await browser.page('widgets', 'Saved simple dashboards'); await browser.fill('Dashboard', seeded.board.id);
       await browser.text(`UI gauge ${stamp}`);
+      assert.equal(await browser.eval(() => document.querySelectorAll('.dashboard-gauge.dial').length), 1);
+      assert.equal(await browser.eval(() => document.querySelector('.dashboard-builder')), null, 'legacy board controls remain read-only');
+      await browser.send('Page.reload'); await browser.text(`UI gauge ${stamp}`);
+      assert.equal(await browser.eval(id => document.querySelector('.dashboard-board-bar select').value === id, seeded.board.id), true, 'selected legacy board survives refresh');
       const saved = await browser.eval(async () => (await fetch('/api/v1/dashboard')).json());
       const widget = saved.find(item => item.title === `UI gauge ${stamp}`);
-      assert.ok(widget.board_id); assert.equal(widget.type, 'gauge'); assert.equal(widget.settings.max, 500);
-      await browser.send('Page.reload'); await browser.text(`UI gauge ${stamp}`);
-      await browser.click(`Edit UI gauge ${stamp}`);
-      await browser.fill('Widget title', `UI edited gauge ${stamp}`);
-      await browser.click('Save widget'); await browser.text(`UI edited gauge ${stamp}`);
+      assert.ok(widget.board_id); assert.equal(widget.board_id, seeded.board.id); assert.equal(widget.type, 'gauge'); assert.equal(widget.settings.max, 500);
       await browser.screenshot('custom-dashboard');
     });
     assert.equal(await browser.eval(() => document.querySelectorAll('[role="alert"]').length), 0);

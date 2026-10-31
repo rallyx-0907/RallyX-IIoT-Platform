@@ -9,7 +9,7 @@ it('previews an entity-bound metric without saving then publishes and assigns ex
  else if(path.endsWith('/entity-dashboard-templates')&&options?.method==='POST')body={id:'saved-template',revision:1,published_version:1,name:'Reusable',document:JSON.parse(String(options.body)).document};
  else if(path.includes('/entities?'))body=[{id:'a',name:'Machine A'}];
  return new Response(JSON.stringify(body));});vi.stubGlobal('fetch',fetcher);const applied=vi.fn();render(<TemplateBuilder entityID="a" onClose={()=>{}} onApplied={applied}/>);
- fireEvent.change(screen.getByLabelText('Tên template'),{target:{value:'Reusable'}});
+ fireEvent.change(screen.getByLabelText('Tên mẫu dashboard'),{target:{value:'Reusable'}});
  fireEvent.click(screen.getByRole('button',{name:'Chỉ số'}));await screen.findByRole('option',{name:/Load/});fireEvent.change(screen.getByLabelText('Đại lượng'),{target:{value:'load'}});
  expect((screen.getByRole('button',{name:'Áp dụng'}) as HTMLButtonElement).disabled).toBe(true);
  fireEvent.click(screen.getByRole('button',{name:'Xem trước'}));await screen.findByText('42');

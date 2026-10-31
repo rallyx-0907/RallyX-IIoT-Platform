@@ -10,6 +10,22 @@ import (
 	"rallyx.local/core/internal/testutil"
 )
 
+func TestRuntimeUnitAliasesAndSemanticTitles(t *testing.T) {
+	now := time.Now()
+	w := SemanticWidget{ID: "power", Type: "value-card", Title: "Thanh ghi 0 (HR 40001)", Binding: MetricScope{Metric: "power"}, Aggregation: "sum", Presentation: WidgetPresentation{Unit: " kW "}}
+	got := aggregateMetric(w, []metricSource{
+		{EntityID: "a", TagID: "a", MetricName: "Công suất", MetricUnit: "kw", MetricType: "number", Value: 2.0, Quality: "GOOD", TS: &now},
+		{EntityID: "b", TagID: "b", MetricName: "Công suất", MetricUnit: " kW ", MetricType: "number", Value: 3.0, Quality: "GOOD", TS: &now},
+	})
+	if got.Quality != "GOOD" || got.Value != float64(5) || got.Unit != "kW" || got.Title != "Công suất" {
+		t.Fatalf("aliases lost semantic data: %+v", got)
+	}
+	w.Presentation.Unit = "MW"
+	if aggregateMetric(w, []metricSource{{MetricUnit: "mW", MetricType: "number", Value: 1.0, Quality: "GOOD", TS: &now}}).Quality != "INCOMPATIBLE" {
+		t.Fatal("distinct SI prefixes were treated as aliases")
+	}
+}
+
 func TestCombinedHistoryDeduplicatesPhysicalAliases(t *testing.T) {
 	now := time.Now().UTC()
 	series := []RuntimeSeries{{Points: []RuntimePoint{{TS: now, Quality: "GOOD", Value: float64(10)}}}, {Points: []RuntimePoint{{TS: now, Quality: "GOOD", Value: float64(10)}}}, {Points: []RuntimePoint{{TS: now, Quality: "GOOD", Value: float64(20)}}}}

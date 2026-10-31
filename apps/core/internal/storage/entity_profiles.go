@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"rallyx.local/core/internal/units"
 	"strings"
 	"unicode/utf8"
 
@@ -11,6 +12,7 @@ import (
 )
 
 type MetricDefinition struct {
+	SourceKey string   `json:"source_key,omitempty"`
 	Key       string   `json:"key"`
 	Name      string   `json:"name"`
 	DataType  string   `json:"data_type"`
@@ -37,8 +39,8 @@ type EntityProfile struct {
 }
 
 func validateMetrics(metrics []MetricDefinition) error {
-	if len(metrics) < 1 || len(metrics) > 128 {
-		return fmt.Errorf("%w: profile needs 1–128 metrics", ErrValidation)
+	if len(metrics) < 1 || len(metrics) > 1000 {
+		return fmt.Errorf("%w: profile needs 1–1000 metrics", ErrValidation)
 	}
 	seen := map[string]bool{}
 	for _, m := range metrics {
@@ -145,7 +147,7 @@ func (s Registry) ListEntityBindings(ctx context.Context, id string) (json.RawMe
 }
 func (s Registry) SaveEntityBindings(ctx context.Context, id string, revision int, bindings map[string]string) (Entity, error) {
 	var zero Entity
-	if len(bindings) > 128 {
+	if len(bindings) > 1000 {
 		return zero, ErrValidation
 	}
 	tx, err := s.Pool.Begin(ctx)
@@ -185,7 +187,7 @@ func (s Registry) SaveEntityBindings(ctx context.Context, id string, revision in
 		if err != nil {
 			return zero, fmt.Errorf("%w: source for %s unavailable", ErrValidation, key)
 		}
-		if datatype != m.DataType || unit != m.Unit || m.History && !history {
+		if datatype != m.DataType || units.Canonical(unit) != units.Canonical(m.Unit) || m.History && !history {
 			return zero, fmt.Errorf("%w: %s requires %s [%s] and compatible history", ErrValidation, key, m.DataType, m.Unit)
 		}
 	}
@@ -210,9 +212,13 @@ func (s Registry) SaveEntityBindings(ctx context.Context, id string, revision in
 }
 
 // Sources are paginated and requested only while engineering a mapping.
-func (s Registry) EntitySources(ctx context.Context, search string, limit, offset int) (json.RawMessage, error) {
+func (s Registry) EntitySources(ctx context.Context, search string, limit, offset int, devices ...string) (json.RawMessage, error) {
 	if limit < 1 || limit > 200 || offset < 0 {
 		return nil, ErrValidation
 	}
-	return s.List(ctx, `SELECT t.id,t.key,t.name,t.datatype,t.data_type,t.unit,t.store_history,d.id AS device_id,d.name AS device_name,a.name AS asset_name FROM tags t JOIN devices d ON d.id=t.device_id JOIN assets a ON a.id=t.asset_id WHERE t.deleted_at IS NULL AND d.deleted_at IS NULL AND a.deleted_at IS NULL AND ($1='' OR t.name ILIKE '%'||$1||'%' OR t.key ILIKE '%'||$1||'%' OR d.name ILIKE '%'||$1||'%') ORDER BY d.name,t.name,t.id LIMIT $2 OFFSET $3`, search, limit, offset)
+	device := ""
+	if len(devices) > 0 {
+		device = devices[0]
+	}
+	return s.List(ctx, `SELECT t.id,t.key,t.name,t.datatype,t.data_type,t.unit,t.store_history,d.id AS device_id,d.name AS device_name,a.name AS asset_name FROM tags t JOIN devices d ON d.id=t.device_id JOIN assets a ON a.id=t.asset_id WHERE t.deleted_at IS NULL AND d.deleted_at IS NULL AND a.deleted_at IS NULL AND ($1='' OR t.name ILIKE '%'||$1||'%' OR t.key ILIKE '%'||$1||'%' OR d.name ILIKE '%'||$1||'%') AND ($4='' OR d.id=$4) ORDER BY d.name,t.name,t.id LIMIT $2 OFFSET $3`, search, limit, offset, device)
 }

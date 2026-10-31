@@ -102,6 +102,14 @@ func TestDynamicConfigurationCSVAndPersonalDashboardAPI(t *testing.T) {
 		t.Fatal("CSV export failed")
 	}
 	viewer := login("viewer")
+	for _, route := range []struct{ method, path string }{
+		{"POST", "/api/v1/onboarding/preview"}, {"POST", "/api/v1/onboarding/complete"},
+		{"GET", "/api/v1/onboarding/devices/demo-motor-device"}, {"POST", "/api/v1/dashboard-boards/not-owned/migrate-native"},
+	} {
+		if got := call(route.method, route.path, map[string]any{}, viewer).Code; got != 403 {
+			t.Fatalf("viewer onboarding access %s: %d", route.path, got)
+		}
+	}
 	if got := call("POST", "/api/v1/config/import/preview", map[string]any{"csv": csv}, viewer).Code; got != 403 {
 		t.Fatalf("viewer import status=%d", got)
 	}

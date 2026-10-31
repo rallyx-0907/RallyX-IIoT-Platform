@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import {handleTransient} from './onboarding.mjs';
 import { WorkerManager } from './workers.mjs';
 import { scaledValue } from './decode.mjs';
 import { bounded } from './adapters.mjs';
@@ -54,6 +55,7 @@ export class ConnectivityService {
     if (req.method === 'GET' && req.url === '/health') { reply(this.reloadHealthy ? 200 : 503, { configuration: this.reloadHealthy }); return; }
     const expected = Buffer.from(`Bearer ${this.token}`), provided = Buffer.from(req.headers.authorization ?? '');
     if (provided.length !== expected.length || !timingSafeEqual(expected, provided)) { reply(401, { error: 'Service authentication required' }); return; }
+    if(req.method==='POST'&&req.url==='/internal/test/preview')return handleTransient(req,res,this);
     if (req.method !== 'POST' || !['/internal/test/connection', '/internal/test/read'].includes(req.url)) { reply(404, { error: 'Unknown operation' }); return; }
     let adapter;
     const controller = new AbortController();

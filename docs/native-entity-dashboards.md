@@ -1,5 +1,7 @@
 # Dashboard native theo thực thể
 
+> Luồng thêm thiết bị và thuật ngữ giao diện hiện tại: [Dashboard và thêm thiết bị nhanh](dashboard-onboarding.md). Phần dưới giữ lại mô hình kỹ thuật và bằng chứng triển khai ban đầu.
+
 Luồng chính tại `/#dashboards` chạy trong RallyX: **Thực thể → Profile → Map tín hiệu → Template → Dashboard theo ngữ cảnh**. Grafana và các bảng theo dõi đã lưu trước đây vẫn mở tại `/#legacy-dashboards`.
 
 ## Tạo cấu hình

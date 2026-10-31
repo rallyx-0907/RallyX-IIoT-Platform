@@ -93,6 +93,9 @@ func run(ctx context.Context) error {
 	if err := auth.Bootstrap(startup, pool, os.Getenv("ADMIN_USERNAME"), os.Getenv("ADMIN_PASSWORD")); err != nil {
 		return err
 	}
+	if err := (storage.Registry{Pool: pool}).EnsureDeviceTemplateDefaults(startup); err != nil {
+		return fmt.Errorf("device dashboard defaults: %w", err)
+	}
 	if password := os.Getenv("GRAFANA_READER_PASSWORD"); password != "" {
 		if err := storage.ConfigureGrafanaReader(startup, pool, storage.GrafanaReaderRole, password); err != nil {
 			return err

@@ -3,6 +3,26 @@ import assert from 'node:assert/strict';
 import { connectAsync } from 'mqtt';
 import { createAdapter } from './adapters.mjs';
 
+test('discovered exact topics map external device IDs and partial frames without fabricating missing values', {skip:!process.env.TEST_MQTT_URL}, async t=>{
+ const url=process.env.TEST_MQTT_URL.replace(/^tcp:/,'mqtt:');
+ const publisher=await connectAsync(url);t.after(()=>publisher.endAsync(true));
+ const prefix='field/discovery/'+Date.now();
+ const tags=[
+  {id:'a',key:'temperature',data_type:'float64',mapping:{topic:prefix+'/a',path:'values.temp',device_id:'external-a'}},
+  {id:'b',key:'run',data_type:'bool',mapping:{topic:prefix+'/b',path:'running',device_id:'external-b'}}
+ ];
+ const adapter=await createAdapter({protocol:'mqtt',timeout_ms:300,protocol_config:{broker_url:url,topic:prefix+'/#'}},{id:'internal-rallyx-id',tags});
+ t.after(()=>adapter.close());
+ await publisher.publishAsync(prefix+'/unselected',JSON.stringify({device_id:'internal-rallyx-id',values:{temp:99}}),{qos:1});
+ await assert.rejects(adapter.read(tags),'unselected topics, including own normalized telemetry, must never be ingested');
+ await publisher.publishAsync(prefix+'/a',JSON.stringify({device_id:'other',values:{temp:99}}),{qos:1});
+ await assert.rejects(adapter.read(tags));
+ await publisher.publishAsync(prefix+'/a',JSON.stringify({device_id:'external-a',values:{temp:0}}),{qos:1});
+ assert.deepEqual((await adapter.read(tags)).values,{temperature:0});
+ await publisher.publishAsync(prefix+'/b',JSON.stringify({device_id:'external-b',running:false}),{qos:1});
+ assert.deepEqual((await adapter.read(tags)).values,{run:false});
+});
+
 test('MQTT mapping preserves source timestamp and rejects other devices and stale cached messages', { skip: !process.env.TEST_MQTT_URL }, async t => {
   const url = process.env.TEST_MQTT_URL.replace(/^tcp:/, 'mqtt:');
   const publisher = await connectAsync(url);

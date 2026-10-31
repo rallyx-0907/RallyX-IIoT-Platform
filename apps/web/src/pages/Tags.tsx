@@ -18,8 +18,8 @@ export function Tags({ user, onRefresh }: { user: User; onRefresh?: () => Promis
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editing, setEditing] = useState<RecordTag | null | undefined>();
   const [deviceID, setDeviceID] = useState('');
-  const [filterDevice, setFilterDevice] = useState('');
-  const [search, setSearch] = useState('');
+  const [filterDevice, setFilterDevice] = useState(()=>new URLSearchParams(location.search).get('device_id')||'');
+  const [search, setSearch] = useState(()=>new URLSearchParams(location.search).get('signal')||'');
   const [filterType, setFilterType] = useState('');
   const [page, setPage] = useState(0);
   const [archive, setArchive] = useState<RecordTag>();

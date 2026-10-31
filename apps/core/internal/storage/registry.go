@@ -46,7 +46,7 @@ func (s Registry) Write(ctx context.Context, resource, id string, body map[strin
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	if resource == "sites" || resource == "areas" || resource == "assets" || resource == "devices" {
+	if resource == "sites" || resource == "areas" || resource == "assets" || resource == "devices" || resource == "device_templates" {
 		if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(7261700)"); err != nil {
 			return nil, err
 		}
@@ -250,6 +250,16 @@ func (s Registry) write(ctx context.Context, tx pgx.Tx, resource, id string, bod
 	}
 	if resource == "devices" && id == "" {
 		if err := cloneDeviceTemplate(ctx, tx, returned.ID, body, overrides, actor); err != nil {
+			return nil, err
+		}
+	}
+	if resource == "device_templates" {
+		if _, _, err := s.syncDeviceTemplateProfile(ctx, tx, returned.ID); err != nil {
+			return nil, err
+		}
+	}
+	if resource == "devices" && id == "" {
+		if err := s.provisionDeviceDashboard(ctx, tx, returned.ID); err != nil {
 			return nil, err
 		}
 	}

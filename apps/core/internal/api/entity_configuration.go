@@ -76,7 +76,7 @@ func registerEntityConfiguration(mux *http.ServeMux, s storage.Registry, hub *re
 			apiError(w, storage.ErrValidation)
 			return
 		}
-		v, e := s.EntitySources(r.Context(), r.URL.Query().Get("search"), limit, offset)
+		v, e := s.EntitySources(r.Context(), r.URL.Query().Get("search"), limit, offset, r.URL.Query().Get("device_id"))
 		platformReply(w, hub, v, e, false)
 	})
 	mux.HandleFunc("GET /api/v1/entity-dashboard-templates", func(w http.ResponseWriter, r *http.Request) {

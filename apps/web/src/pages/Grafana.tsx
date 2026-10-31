@@ -14,7 +14,7 @@ async function grafana<T>(path:string,options:RequestInit={}):Promise<T>{
  const response=await fetch(`/grafana/api/${path}`,{credentials:'same-origin',...options,headers:{'Content-Type':'application/json',...options.headers}});
  let body;try{body=await response.json();}catch{throw new Error('Grafana tạm thời không phản hồi. Vui lòng thử lại.');}if(!response.ok)throw new Error(body.message||'Không thể kết nối Grafana.');return body;
 }
-export function Grafana({userID='current'}:{userID?:string}){
+export function Grafana({userID='current',allowCreate=true}:{userID?:string;allowCreate?:boolean}){
  const [status,setStatus]=useState<Status>();const [error,setError]=useState('');const [revision,setRevision]=useState(0);
  const [boards,setBoards]=useState<Board[]>([]);const [selected,setSelected]=useState<Board>();
  const [simpleBoards,setSimpleBoards]=useState<{id:string;name:string}[]>([]);const [simpleSelection,setSimpleSelection]=useState<string>();const [listLoading,setListLoading]=useState(true);
@@ -67,13 +67,13 @@ export function Grafana({userID='current'}:{userID?:string}){
   <div className="workspace-navigation"><div className="dashboard-tabs" aria-label="Dashboard đã lưu">
    {boards.filter(b=>b.uid!=='rallyx-overview').map(b=><button key={b.uid} title={b.title} aria-pressed={selected?.uid===b.uid} className={selected?.uid===b.uid?'active':''} onClick={()=>chooseGrafana(b)}>{b.title}</button>)}
    {simpleBoards.map(board=><button key={`simple-${board.id}`} aria-label={`${board.name} · Bảng theo dõi đơn giản`} aria-pressed={simpleSelection===board.id} className={simpleSelection===board.id?'active':''} onClick={()=>chooseSimple(board.id)}>{board.name}</button>)}
-  </div>{status?.available&&status.can_edit&&<button className="primary" onClick={()=>{setCreating(true);setError('');}}>Tạo dashboard</button>}<button aria-label="Làm mới danh sách" disabled={listLoading} onClick={()=>setRevision(n=>n+1)}>Làm mới</button></div>
+  </div>{allowCreate&&status?.available&&status.can_edit&&<button className="primary" onClick={()=>{setCreating(true);setError('');}}>Tạo dashboard</button>}<button aria-label="Làm mới danh sách" disabled={listLoading} onClick={()=>setRevision(n=>n+1)}>Làm mới</button></div>
   {error&&<p className="error" role="alert">{t(error)}</p>}
   {listLoading&&!selected&&simpleSelection===undefined&&<p role="status">Đang tải các dashboard đã lưu…</p>}
   {status&&!status.available&&<p className="warning">{t('Grafana is temporarily unavailable. Data collection continues.')} <button onClick={()=>setRevision(n=>n+1)}>{t('Retry')}</button></p>}
   {!listLoading&&!selected&&simpleSelection===undefined&&<div className="dashboard-empty"><span>▥</span><h2>Không gian giám sát của nhà máy</h2><p>Tạo dashboard theo nhà máy, khu vực hoặc máy. Kết hợp chỉ số, đồng hồ và biểu đồ của nhiều thiết bị trên cùng một bảng.</p>{status?.available&&<button onClick={()=>chooseGrafana({uid:'rallyx-overview',title:'Tổng quan hệ thống',url:'/d/rallyx-overview'})}>Xem dashboard tổng quan</button>}</div>}
   {selected&&<><div className="workspace-actions"><strong>{selected.title}</strong><span>Dữ liệu hiện trường · Tự cập nhật 5 giây</span><div><a href={dashboardLink({kind:'grafana',id:selected.uid})} target="_blank" rel="noopener noreferrer">Mở tab mới ↗</a>{status?.can_edit&&<button onClick={()=>setEditing(true)}>Tùy chỉnh / kéo thả</button>}{status?.can_edit&&<a href={`/grafana/d/${encodeURIComponent(selected.uid)}`} target="_blank" rel="noopener noreferrer">Grafana ↗</a>}</div></div><iframe key={`${selected.uid}-${frameRevision}`} title={t('Grafana dashboards')} src={`/grafana/d/${encodeURIComponent(selected.uid)}?kiosk&theme=dark`} className="dashboard-frame"/></>}
-  {simpleSelection!==undefined&&<DashboardWidgets key={simpleSelection} initialBoardID={simpleSelection} onBoardSelect={chooseSimple}/>}
+  {simpleSelection!==undefined&&<DashboardWidgets readOnly={!allowCreate} key={simpleSelection} initialBoardID={simpleSelection} onBoardSelect={chooseSimple}/>}
   {creating&&<DashboardComposer points={points} devices={devices} onClose={()=>setCreating(false)} onApply={create}/>}
   {selected&&editing&&<div className="editor-modal-backdrop" role="dialog" aria-modal="true" aria-label="Cấu hình bố cục dashboard"><DashboardEditor uid={selected.uid} points={points} devices={devices} api={grafana} onClose={()=>{setEditing(false);setFrameRevision(n=>n+1);}} onSaved={title=>{setSelected({...selected,title});setBoards(old=>old.map(board=>board.uid===selected.uid?{...board,title}:board));setFrameRevision(n=>n+1);}}/></div>}
  </div>;
