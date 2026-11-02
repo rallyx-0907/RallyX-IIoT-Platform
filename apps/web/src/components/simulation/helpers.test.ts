@@ -30,4 +30,10 @@ describe('simulation helpers', () => {
     expect(tag.value).toBe(25);
     expect(resolveBinding({ tagId: 'missing', operator: 'direct' }, new Map(), { mode: 'preview', previewValues }).available).toBe(false);
   });
+  it('rejects unsupported runtime values instead of crashing or displaying a plausible state', () => {
+    for (const value of [null, { unexpected: true }, [], Infinity]) {
+      const invalid = { ...tag, value } as unknown as Tag;
+      expect(resolveBinding({ tagId: 'a', operator: 'direct' }, new Map([['a', invalid]]), { mode: 'live', now: Date.parse(tag.ts!) }).available).toBe(false);
+    }
+  });
 });

@@ -21,7 +21,7 @@ export function resolveBinding(binding: ControlBinding | undefined, tags: Readon
     if ((options.now ?? Date.now()) - timestamp > Math.max(1, tag.stale_seconds || 30) * 1000) return unavailable('Dữ liệu quá hạn', 'STALE');
     value = tag.value;
   }
-  if (value === undefined || (typeof value === 'number' && !Number.isFinite(value))) return unavailable('Giá trị không hợp lệ');
+  if (value === undefined || !['boolean', 'number', 'string'].includes(typeof value) || (typeof value === 'number' && !Number.isFinite(value))) return unavailable('Giá trị không hợp lệ');
   const compare = binding.compareValue;
   let matched: boolean;
   switch (binding.operator) {
