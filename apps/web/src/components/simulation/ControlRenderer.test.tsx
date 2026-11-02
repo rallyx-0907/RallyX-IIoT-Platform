@@ -45,6 +45,21 @@ describe('simulation controls', () => {
     expect(container.querySelector('.simulation-lamp')?.getAttribute('data-density')).toBe('minimal');
     expect(screen.getByText('?')).toBeTruthy();
   });
+  it('blinks only an active available lamp with configured mode and period', () => {
+    const control = createControl('indicator-lamp');
+    control.properties = { ...control.properties, mode: 'blink', blinkPeriodMs: 800 };
+    const { container, rerender } = render(<ControlRenderer control={control} resolved={{ available: true, quality: 'GOOD', conditionMatched: true }} />);
+    expect(container.querySelector('.simulation-lamp')?.getAttribute('data-blinking')).toBe('true');
+    expect((container.querySelector('.simulation-lamp') as HTMLElement).style.getPropertyValue('--lamp-period')).toBe('800ms');
+    expect(screen.getByText('NHẤP NHÁY')).toBeTruthy();
+    for (const resolved of [{ available: true, quality: 'GOOD', conditionMatched: false }, { available: false, quality: 'STALE', conditionMatched: true }]) {
+      rerender(<ControlRenderer control={control} resolved={resolved} />);
+      expect(container.querySelector('.simulation-lamp')?.getAttribute('data-blinking')).toBe('false');
+    }
+    delete control.properties.mode;
+    rerender(<ControlRenderer control={control} resolved={{ available: true, quality: 'PREVIEW', conditionMatched: true }} />);
+    expect(container.querySelector('.simulation-lamp')?.getAttribute('data-blinking')).toBe('false');
+  });
   it('clamps needle but preserves actual numeric display', () => {
     const control = createControl('analog-gauge');
     control.properties.precision = 2;

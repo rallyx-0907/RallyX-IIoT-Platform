@@ -12,3 +12,11 @@
 .simulation-lamp[data-density='minimal'] { grid-template-rows: minmax(0, 1fr); gap: 0; }
 .simulation-lamp[data-density='minimal'] .simulation-lamp-label,
 .simulation-lamp[data-density='minimal'] .simulation-lamp-status { display: none; }
+.simulation-lamp[data-blinking='true'] circle { animation: simulation-lamp-blink var(--lamp-period, 1000ms) steps(1, end) infinite; }
+@keyframes simulation-lamp-blink {
+  0%, 100% { fill: var(--lamp-on); }
+  50% { fill: var(--lamp-off); filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .simulation-lamp[data-blinking='true'] circle { animation: none; }
+}

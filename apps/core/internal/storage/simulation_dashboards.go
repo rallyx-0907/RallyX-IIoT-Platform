@@ -80,7 +80,7 @@ func safeSimulationImage(s string) bool { return s == "" || simulationImage.Matc
 var simulationProperties = map[string]map[string]string{
 	"selector-switch": {"label": "selectorLabel", "positions": "positions", "orientation": "orientation", "knobStyle": "knobStyle", "activeColor": "color", "inactiveColor": "color", "textSize": "textSize", "knobSize": "knobSize"},
 	"text":            {"text": "string", "fontSize": "fontSize", "fontWeight": "weight", "textAlign": "align"},
-	"indicator-lamp":  {"label": "string", "onColor": "color", "offColor": "color", "borderStyle": "border"},
+	"indicator-lamp":  {"label": "string", "onColor": "color", "offColor": "color", "borderStyle": "border", "mode": "lampMode", "blinkPeriodMs": "blinkPeriod"},
 	"analog-gauge":    {"min": "number", "max": "number", "unit": "string", "precision": "precision", "label": "string"},
 	"numeric-value":   {"label": "string", "unit": "string", "precision": "precision", "prefix": "string", "suffix": "string"},
 	"rectangle":       {"fill": "color", "borderColor": "color", "borderWidth": "borderWidth", "borderRadius": "radius"},
@@ -90,6 +90,8 @@ var simulationProperties = map[string]map[string]string{
 
 func validateSimulationProperty(kind string, v any) bool {
 	switch kind {
+	case "lampMode":
+		return v == "steady" || v == "blink"
 	case "positions":
 		_, ok := selectorPositionType(v)
 		return ok
@@ -136,6 +138,8 @@ func validateSimulationProperty(kind string, v any) bool {
 			return false
 		}
 		switch kind {
+		case "blinkPeriod":
+			return bounded(n, 200, 5000)
 		case "number":
 			return bounded(n, -1e15, 1e15)
 		case "textSize":

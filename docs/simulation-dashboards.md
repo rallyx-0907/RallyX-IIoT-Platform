@@ -21,6 +21,12 @@ Dashboard phân tích hiện có vẫn ở mục **Giám sát vận hành · Ph�
 
 ## Dữ liệu và quyền
 
+### Đèn alarm nhấp nháy
+
+Chọn đèn trong **Thiết kế → Chế độ đèn → Nhấp nháy**, rồi chỉnh **Chu kỳ nháy (ms)** và lưu dashboard. Mặc định chu kỳ là 1.000 ms, cho phép 200–5.000 ms cho một vòng bật/tắt. Chế độ Sáng liên tục giữ hành vi cũ.
+
+Đèn chỉ nhấp nháy khi điều kiện binding đang BẬT. Khi OFF đèn giữ màu tắt; khi thiếu dữ liệu hoặc mất kết nối đèn hiện dấu hỏi và dừng nháy. Nhãn giữ nguyên, dòng trạng thái báo NHẤP NHÁY. Xem thử dùng giá trị tạm để thử hiệu ứng. Tùy chọn giảm chuyển động của hệ điều hành tắt hiệu ứng nhưng giữ trạng thái cảnh báo bằng chữ và màu bật. Tùy chọn được lưu cùng properties, không tạo rule hay phát lệnh xuống thiết bị.
+
 ### Công tắc chọn 2/3 vị trí
 
 Trong Thiết kế, thêm **Công tắc chọn**, chọn số vị trí rồi nhập nhãn và giá trị cho từng vị trí. Ví dụ MAN/OFF/AUTO có thể tương ứng số 10/20/30 hoặc chuỗi MAN/OFF/AUTO. Công tắc 2 vị trí hỗ trợ cả boolean false/true. Mỗi công tắc dùng một kiểu giá trị, không được trùng giá trị giữa các vị trí; so khớp đúng kiểu và giá trị. Khi gán tín hiệu khác kiểu, kiểm tra lại các giá trị ánh xạ được chuyển đổi trong cấu hình.

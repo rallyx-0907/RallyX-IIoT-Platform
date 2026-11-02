@@ -24,14 +24,16 @@ export function ControlRenderer({ control, resolved }: { control: ControlInstanc
     case 'indicator-lamp': {
       const on = resolved?.conditionMatched === true;
       const lampColor = color(on ? p.onColor : p.offColor, on ? '#16a34a' : '#64748b');
+      const blinking = available && on && p.mode === 'blink';
+      const lampStyle = { '--lamp-period': number(p.blinkPeriodMs, 1000, 200, 5000) + 'ms', '--lamp-on': color(p.onColor, '#16a34a'), '--lamp-off': color(p.offColor, '#64748b') } as CSSProperties;
       const density = control.height < 50 || control.width < 45 ? 'minimal' : control.height < 85 ? 'compact' : 'normal';
-      return <div className="simulation-lamp" data-density={density} title={title} data-state={!available ? 'unavailable' : on ? 'on' : 'off'}>
+      return <div className="simulation-lamp" style={lampStyle} data-density={density} title={title} data-blinking={blinking} data-state={!available ? 'unavailable' : on ? 'on' : 'off'}>
         <div className="simulation-lamp-drawing"><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" role="img" aria-label={!available ? 'Đèn không có dữ liệu' : on ? 'Đèn bật' : 'Đèn tắt'}>
           <circle cx="50" cy="50" r="39" fill={available ? lampColor : '#cbd5e1'} stroke="#334155" strokeWidth="3" strokeDasharray={!available || p.borderStyle === 'dashed' ? '5 3' : undefined} strokeOpacity={p.borderStyle === 'none' ? 0 : 1} style={{ filter: available && on ? 'drop-shadow(0 0 4px ' + lampColor + ')' : undefined }} />
           {!available && <text x="50" y="50" dy=".35em" textAnchor="middle" fill="#0f172a" fontSize="32" fontWeight="800">?</text>}
         </svg></div>
         <strong className="simulation-lamp-label" title={text(p.label)}>{text(p.label)}</strong>
-        <small className="simulation-lamp-status">{available ? on ? 'BẬT' : 'TẮT' : 'Không có dữ liệu'}</small>
+        <small className="simulation-lamp-status">{available ? blinking ? 'NHẤP NHÁY' : on ? 'BẬT' : 'TẮT' : 'Không có dữ liệu'}</small>
       </div>;
     }
     case 'analog-gauge': {

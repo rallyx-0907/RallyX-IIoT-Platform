@@ -23,6 +23,18 @@ it('adds, duplicates and deletes controls without intercepting text editing', ()
   fireEvent.click(screen.getByRole('button', { name: 'Xóa phần tử' }));
   expect(screen.getByTestId('count').textContent).toBe('1');
 });
+it('configures lamp blink mode and clamps its period through Properties', () => {
+  render(<Fixture />);
+  fireEvent.click(screen.getByRole('button', { name: /Thêm Đèn báo trạng thái/i }));
+  expect((screen.getByLabelText('Chế độ đèn') as HTMLSelectElement).value).toBe('steady');
+  expect(screen.getByRole('option', { name: 'Nhấp nháy' })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Chế độ đèn'), { target: { value: 'blink' } });
+  const period = screen.getByLabelText('Chu kỳ nháy (ms)');
+  fireEvent.change(period, { target: { value: '10' } });
+  fireEvent.blur(period);
+  expect((period as HTMLInputElement).value).toBe('200');
+  expect((screen.getByLabelText('Chế độ đèn') as HTMLSelectElement).value).toBe('blink');
+});
 it('live mode has no editing actions and preview never changes persisted configuration', () => {
   const onChange = vi.fn();
   const { rerender } = render(<SimulationEditor dashboard={initial} onChange={onChange} tags={[]} mode="live" connection="connected" />);
