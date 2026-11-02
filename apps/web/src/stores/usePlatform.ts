@@ -3,7 +3,7 @@ import { request, errorMessage } from '../api/client';
 import type { Alarm, Asset, EventRecord, PlatformData, Rule, Site, Tag, User } from '../types/platform';
 
 const empty: PlatformData = { assets: [], tags: [], alarms: [], events: [], rules: [], tree: [] };
-export function usePlatform(user: User | null | undefined, snapshots = true) {
+export function usePlatform(user: User | null | undefined, snapshots: boolean | 'tags' = true) {
   const [data, setData] = useState<PlatformData>(empty);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,6 +22,11 @@ export function usePlatform(user: User | null | undefined, snapshots = true) {
         if(active.current&&!controller.signal.aborted){setData(previous=>({...previous,alarms}));setError('');}
         return;
       }
+      if(snapshots==='tags'){
+        const [tags,alarms]=await Promise.all([request<Tag[]>('/tags',options),request<Alarm[]>('/alarms',options)]);
+        if(active.current&&!controller.signal.aborted){setData(previous=>({...previous,tags,alarms}));setError('');}
+        return;
+      }
       const [assets, tags, alarms, events, rules, tree] = await Promise.all([
         request<Asset[]>('/assets',options), request<Tag[]>('/tags',options), request<Alarm[]>('/alarms',options),
         request<EventRecord[]>('/events?limit=12',options), request<Rule[]>('/rules',options), request<Site[]>('/assets/tree',options),
@@ -33,7 +38,7 @@ export function usePlatform(user: User | null | undefined, snapshots = true) {
   useEffect(() => {
     active.current = true;
     if (!user || user.must_change_password) return;
-    setLoading(snapshots); void refresh();
+    setLoading(Boolean(snapshots)); void refresh();
     let socket: WebSocket;
     let stopped = false;
     let reconnect: ReturnType<typeof setTimeout>;

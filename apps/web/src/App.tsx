@@ -1,5 +1,5 @@
 import { t as translate, useLanguage, LanguageSelector, getLocale } from './i18n';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, errorMessage, post, request } from './api/client';
 import {WorkspaceNavigation} from './components/WorkspaceNavigation';
 import {QuickDeviceWizard,type CloneDevice} from './pages/QuickDeviceWizard';
@@ -21,6 +21,7 @@ import { Templates } from './pages/Templates';
 import { Tags } from './pages/Tags';
 import { LiveData } from './pages/LiveData';
 import {EntityDashboards} from './pages/EntityDashboards';
+import {DashboardHub} from './pages/DashboardHub';
 import {lastEntity} from './pages/entities/model';
 import type { User } from './types/platform';
 
@@ -47,13 +48,15 @@ export function App() {
   const [user, setUser] = useState<User | null>();
   const [startupError, setStartupError] = useState('');
   const [page, setPage] = useState(location.hash.slice(1) || 'dashboards');
+  const pageRef=useRef(page);pageRef.current=page;
+  const allowedHash=useRef('');
   const [selected, setSelected] = useState('');
   const [actionError, setActionError] = useState('');
   const [completionNotice,setCompletionNotice]=useState('');
   const [nativeOverride,setNativeOverride]=useState(false);
   const [quickWizard,setQuickWizard]=useState<boolean|CloneDevice>(false),[nativeEpoch,setNativeEpoch]=useState(0);
   const dashboardEntry=page==='dashboards'||page==='legacy-dashboards'||Boolean(!location.hash&&user&&(lastEntity(user.id)||linkedDashboard()||rememberedDashboard(user.id)));
-  const platform = usePlatform(user,!dashboardEntry);
+  const platform = usePlatform(user,page==='dashboards'?'tags':!dashboardEntry);
   useEffect(() => {
     if (user && !location.hash && (lastEntity(user.id)||linkedDashboard() || rememberedDashboard(user.id))) {
       const target='dashboards';setPage(target);history.replaceState(null,'',location.pathname+location.search+'#'+target);
@@ -64,11 +67,11 @@ export function App() {
     request<User>('/auth/me').then(result => { if (current) setUser(result); }).catch(error => {
       if (current) { if (!(error instanceof ApiError && error.status === 401)) setStartupError(errorMessage(error)); setUser(null); }
     });
-    const hash = () => setPage(location.hash.slice(1) || 'dashboards');
+    const hash = () => {const next=location.hash.slice(1)||'dashboards';if(allowedHash.current===next){allowedHash.current='';setPage(next);return;}if(next!==pageRef.current){const guard=new Event('rallyx:before-navigate',{cancelable:true});window.dispatchEvent(guard);if(guard.defaultPrevented){history.replaceState(null,'',location.pathname+location.search+'#'+pageRef.current);return;}}setPage(next);};
     window.addEventListener('hashchange', hash);
     return () => { current = false; window.removeEventListener('hashchange', hash); };
   }, []);
-  const navigate = (next: string) => { if(next==='dashboards'){const url=new URL(location.href);url.searchParams.delete('dashboard');url.searchParams.delete('simpleBoard');history.replaceState(null,'',url.pathname+url.search+url.hash);setNativeOverride(true);}setPage(next); location.hash = next; setActionError(''); };
+  const navigate = (next: string) => {const guard=new Event('rallyx:before-navigate',{cancelable:true});window.dispatchEvent(guard);if(guard.defaultPrevented)return; if(next==='dashboards'){const url=new URL(location.href);url.searchParams.delete('dashboard');url.searchParams.delete('simpleBoard');history.replaceState(null,'',url.pathname+url.search+url.hash);setNativeOverride(true);}allowedHash.current=next;setPage(next); location.hash = next; setActionError(''); };
   const acknowledge = async (id: number) => {
     try { await post(`/alarms/${id}/ack`, {}); await platform.refresh(); } catch (error) { setActionError(errorMessage(error)); }
   };
@@ -86,7 +89,7 @@ export function App() {
           {current[0] === 'overview' && <Overview data={data} user={user} offline={connection === 'offline'} onAsset={id => { rememberEntity(user.id,'legacy:assets:'+id);setNativeEpoch(n=>n+1);navigate('dashboards'); }} onAddDevice={()=>setQuickWizard(true)} onAlarms={() => navigate('alarms')} onAck={acknowledge} />}
           {current[0] === 'assets' && <Assets data={data} selected={selected} onSelect={setSelected} offline={connection === 'offline'} user={user} onRefresh={refresh} />}
           {current[0] === 'live' && <LiveData data={data} offline={connection === 'offline'} />}
-          {current[0] === 'dashboards' && (!nativeOverride&&linkedDashboard()?<><button onClick={()=>navigate('dashboards')}>Mở giám sát native</button><Grafana userID={user.id} allowCreate={false}/></>:<EntityDashboards key={nativeEpoch} user={user} offline={connection==='offline'} onAddDevice={()=>setQuickWizard(true)} onCloneDevice={async id=>{try{setQuickWizard(await request<CloneDevice>('/onboarding/devices/'+encodeURIComponent(id)));}catch(e){setActionError(errorMessage(e));}}}/>)}
+          {current[0] === 'dashboards' && (!nativeOverride&&linkedDashboard()&&!new URLSearchParams(location.search).has('simulation')?<><button onClick={()=>navigate('dashboards')}>Mở giám sát native</button><Grafana userID={user.id} allowCreate={false}/></>:<DashboardHub user={user} tags={data.tags} connection={error?'offline':connection} standard={<EntityDashboards key={nativeEpoch} user={user} offline={connection==='offline'} onAddDevice={()=>setQuickWizard(true)} onCloneDevice={async id=>{try{setQuickWizard(await request<CloneDevice>('/onboarding/devices/'+encodeURIComponent(id)));}catch(e){setActionError(errorMessage(e));}}}/>}/>)}
           {current[0] === 'legacy-dashboards' && <><button onClick={()=>navigate('dashboards')}>Mở giám sát native</button><Grafana userID={user.id} allowCreate={false}/></>}
           {current[0] === 'widgets' && <DashboardWidgets readOnly offline={connection === 'offline'} />}
           {current[0] === 'history' && <History data={data} />}
