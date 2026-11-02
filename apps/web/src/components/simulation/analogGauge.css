@@ -1,0 +1,14 @@
+.simulation-gauge{width:100%;height:100%;box-sizing:border-box;display:grid;grid-template-rows:22px minmax(0,1fr) 36px;gap:4px;padding:4px;overflow:hidden;text-align:center;color:#17324b}
+.simulation-gauge-label{display:block;min-width:0;min-height:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:22px}
+.simulation-gauge-drawing{min-width:0;min-height:0;overflow:hidden;display:grid;grid-template-rows:minmax(0,1fr) 16px;gap:2px}
+.simulation-gauge-drawing svg{display:block;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
+.simulation-gauge-range{display:flex;justify-content:space-between;justify-self:center;box-sizing:border-box;gap:8px;max-width:100%;min-width:0;overflow:hidden;font-size:12px;line-height:16px;padding:0 8px}
+.simulation-gauge-range span{max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.simulation-gauge-value{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:0;overflow:hidden;line-height:1.1}
+.simulation-gauge-value>strong{display:block;font-size:22px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.simulation-gauge-value small{font-size:13px}.simulation-gauge-value .simulation-gauge-unavailable{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.simulation-gauge[data-density=compact],.simulation-gauge[data-density=minimal]{grid-template-rows:minmax(0,1fr) 0 minmax(0,1fr);gap:2px}
+.simulation-gauge[data-density=compact] .simulation-gauge-drawing,.simulation-gauge[data-density=minimal] .simulation-gauge-drawing{visibility:hidden}
+.simulation-gauge[data-density=compact] .simulation-gauge-value>strong{font-size:18px}
+.simulation-gauge[data-density=compact] .simulation-gauge-unavailable,.simulation-gauge[data-density=minimal] .simulation-gauge-unavailable{display:none}
+.simulation-gauge[data-density=minimal]{padding:1px;gap:0}.simulation-gauge[data-density=minimal] .simulation-gauge-label{font-size:10px;line-height:1.1}.simulation-gauge[data-density=minimal] .simulation-gauge-value>strong,.simulation-gauge[data-density=minimal] .simulation-gauge-value small{font-size:10px}

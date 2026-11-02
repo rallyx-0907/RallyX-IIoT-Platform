@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { ControlInstance, ResolvedBinding } from '../../types/simulation';
 import { safeImageSource } from './registry';
+import './analogGauge.css';
 
 const base: CSSProperties = { width: '100%', height: '100%', boxSizing: 'border-box', overflow: 'hidden' };
 const center: CSSProperties = { ...base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 };
@@ -28,7 +29,22 @@ export function ControlRenderer({ control, resolved }: { control: ControlInstanc
       const fraction = numeric ? Math.max(0, Math.min(1, (resolved.value as number - min) / (max - min))) : 0;
       const angle = Math.PI * (1 - fraction);
       const needleX = 100 + 65 * Math.cos(angle), needleY = 85 - 65 * Math.sin(angle);
-      return <div style={center} title={title}><strong style={{ fontSize: 14 }}>{text(p.label)}</strong><svg viewBox="0 0 200 110" width="100%" style={{ minHeight: 0, flex: '1 1 auto' }} role="img" aria-label={numeric ? 'Đồng hồ ' + displayValue(resolved, p.precision) : 'Đồng hồ không có dữ liệu'}><path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke="#cbd5e1" strokeWidth="12" /><path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke={numeric ? '#0d9488' : '#94a3b8'} strokeWidth="6" />{numeric && <><line x1="100" y1="85" x2={needleX} y2={needleY} stroke="#e11d48" strokeWidth="4" /><circle cx="100" cy="85" r="7" fill="#334155" /></>}<text x="17" y="105" fontSize="12" fill="#475569">{min}</text><text x="183" y="105" fontSize="12" textAnchor="end" fill="#475569">{max}</text></svg><strong style={{ fontSize: 22, lineHeight: 1 }}>{numeric ? displayValue(resolved, p.precision) : '—'} <small style={{ fontSize: 13 }}>{text(p.unit)}</small></strong>{!numeric && <small>Không có dữ liệu số</small>}</div>;
+      const density = control.height < 64 || control.width < 72 ? 'minimal' : control.height < 140 || control.width < 130 ? 'compact' : 'normal';
+      // Match the aspect-fitted SVG viewport so range labels stay under its ends.
+      // Reserve header 22 + footer 36 + padding/gaps 16 + range row/gap 18 px.
+      const plotWidth = Math.max(0, Math.min(control.width - 8, (control.height - 92) * 200 / 110));
+      return <div className="simulation-gauge" data-density={density} title={title}>
+        <strong className="simulation-gauge-label" title={text(p.label)}>{text(p.label)}</strong>
+        <div className="simulation-gauge-drawing">
+          <svg viewBox="0 -8 200 110" preserveAspectRatio="xMidYMid meet" role="img" aria-label={numeric ? 'Đồng hồ ' + displayValue(resolved, p.precision) : 'Đồng hồ không có dữ liệu'}>
+            <path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke="#cbd5e1" strokeWidth="12" />
+            <path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke={numeric ? '#0d9488' : '#94a3b8'} strokeWidth="6" />
+            {numeric && <><line x1="100" y1="85" x2={needleX} y2={needleY} stroke="#e11d48" strokeWidth="4" /><circle cx="100" cy="85" r="7" fill="#334155" /></>}
+          </svg>
+          <div className="simulation-gauge-range" style={{ width: plotWidth }}><span title={String(min)}>{min}</span><span title={String(max)}>{max}</span></div>
+        </div>
+        <div className="simulation-gauge-value"><strong title={numeric ? displayValue(resolved, p.precision) + ' ' + text(p.unit) : 'Không có dữ liệu số'}>{numeric ? displayValue(resolved, p.precision) : '—'} <small>{text(p.unit)}</small></strong>{!numeric && <small className="simulation-gauge-unavailable">Không có dữ liệu số</small>}</div>
+      </div>;
     }
     case 'numeric-value': return <div style={center} title={title}><span style={{ fontSize: 14 }}>{text(p.label)}</span><strong style={{ fontSize: 26, color: available ? '#0f766e' : '#64748b', overflowWrap: 'anywhere' }}>{available ? text(p.prefix) : ''}{displayValue(resolved, p.precision)}{available ? text(p.suffix) : ''} <small style={{ fontSize: 14 }}>{text(p.unit)}</small></strong>{!available && <small>Không có dữ liệu</small>}</div>;
     case 'rectangle': return <div style={{ ...base, backgroundColor: color(p.fill, '#e2e8f0'), border: number(p.borderWidth, 1, 0, 30) + 'px solid ' + color(p.borderColor, '#64748b'), borderRadius: number(p.borderRadius, 8, 0, 200) }} />;

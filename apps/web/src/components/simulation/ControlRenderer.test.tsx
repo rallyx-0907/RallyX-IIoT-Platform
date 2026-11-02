@@ -5,6 +5,24 @@ import { CONTROL_REGISTRY, createControl, safeImageSource } from './registry';
 afterEach(cleanup);
 describe('simulation controls', () => {
   it('has all seven generic controls', () => expect(Object.keys(CONTROL_REGISTRY)).toHaveLength(7));
+  it('separates gauge label, bounded drawing and value into three regions at every size', () => {
+    const control = createControl('analog-gauge');
+    control.properties.label = 'Voltage';
+    const { container, rerender } = render(<ControlRenderer control={control} resolved={{ available: true, quality: 'GOOD', value: 382 }} />);
+    const layout = container.querySelector('.simulation-gauge');
+    expect(layout?.children.length).toBe(3);
+    expect(layout?.children[0].className).toBe('simulation-gauge-label');
+    expect(layout?.children[1].className).toBe('simulation-gauge-drawing');
+    expect(layout?.children[2].className).toBe('simulation-gauge-value');
+    expect(layout?.querySelector('svg')?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
+    expect(layout?.querySelector('svg')?.getAttribute('viewBox')).toBe('0 -8 200 110');
+    rerender(<ControlRenderer control={{ ...control, width: 120, height: 90 }} resolved={{ available: true, quality: 'PREVIEW', value: 382 }} />);
+    expect(container.querySelector('.simulation-gauge')?.getAttribute('data-density')).toBe('compact');
+    rerender(<ControlRenderer control={{ ...control, width: 50, height: 40 }} resolved={{ available: false, quality: 'STALE' }} />);
+    expect(container.querySelector('.simulation-gauge')?.getAttribute('data-density')).toBe('minimal');
+    expect(screen.getByText('Voltage')).toBeTruthy();
+    expect(screen.getByText('Không có dữ liệu số')).toBeTruthy();
+  });
   it('shows unavailable lamp distinctly from OFF', () => {
     const { rerender } = render(<ControlRenderer control={createControl('indicator-lamp')} resolved={{ available: false, quality: 'STALE', reason: 'Dữ liệu quá hạn' }} />);
     expect(screen.getByText('?')).toBeTruthy();
