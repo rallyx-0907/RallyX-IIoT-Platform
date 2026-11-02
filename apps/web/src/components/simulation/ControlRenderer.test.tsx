@@ -30,6 +30,21 @@ describe('simulation controls', () => {
     rerender(<ControlRenderer control={createControl('indicator-lamp')} resolved={{ available: true, quality: 'GOOD', value: false, conditionMatched: false }} />);
     expect(screen.getByText('TẮT')).toBeTruthy();
   });
+  it('keeps lamp drawing separate from its label and status across resize', () => {
+    const control = createControl('indicator-lamp');
+    control.properties.label = 'Motor RUN';
+    const { container, rerender } = render(<ControlRenderer control={control} resolved={{ available: true, quality: 'GOOD', conditionMatched: true }} />);
+    const lamp = container.querySelector('.simulation-lamp');
+    expect(lamp?.children.length).toBe(3);
+    expect(lamp?.children[0].className).toBe('simulation-lamp-drawing');
+    expect(lamp?.children[1].className).toBe('simulation-lamp-label');
+    expect(lamp?.children[2].className).toBe('simulation-lamp-status');
+    expect(lamp?.querySelector('svg')?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
+    expect(lamp?.querySelector('circle')).toBeTruthy();
+    rerender(<ControlRenderer control={{ ...control, width: 45, height: 35 }} resolved={{ available: false, quality: 'STALE' }} />);
+    expect(container.querySelector('.simulation-lamp')?.getAttribute('data-density')).toBe('minimal');
+    expect(screen.getByText('?')).toBeTruthy();
+  });
   it('clamps needle but preserves actual numeric display', () => {
     const control = createControl('analog-gauge');
     control.properties.precision = 2;

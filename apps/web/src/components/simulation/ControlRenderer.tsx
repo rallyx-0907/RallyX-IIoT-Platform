@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import type { ControlInstance, ResolvedBinding } from '../../types/simulation';
 import { safeImageSource } from './registry';
 import './analogGauge.css';
+import './indicatorLamp.css';
 
 const base: CSSProperties = { width: '100%', height: '100%', boxSizing: 'border-box', overflow: 'hidden' };
 const center: CSSProperties = { ...base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 };
@@ -23,7 +24,15 @@ export function ControlRenderer({ control, resolved }: { control: ControlInstanc
     case 'indicator-lamp': {
       const on = resolved?.conditionMatched === true;
       const lampColor = color(on ? p.onColor : p.offColor, on ? '#16a34a' : '#64748b');
-      return <div style={center} title={title} data-state={!available ? 'unavailable' : on ? 'on' : 'off'}><span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'min(65%, 70px)', aspectRatio: '1', borderRadius: '50%', border: '3px ' + (['solid', 'dashed', 'none'].includes(String(p.borderStyle)) ? p.borderStyle : 'solid') + ' #334155', background: available ? lampColor : 'repeating-linear-gradient(135deg,#cbd5e1 0px,#cbd5e1 5px,#f1f5f9 5px,#f1f5f9 10px)', boxShadow: available && on ? '0 0 14px ' + lampColor : undefined, color: '#0f172a', fontSize: 25, fontWeight: 800 }}>{available ? '' : '?'}</span><strong style={{ fontSize: 14, lineHeight: 1.15, textAlign: 'center' }}>{text(p.label)}</strong><small style={{ fontSize: 11 }}>{available ? on ? 'BẬT' : 'TẮT' : 'Không có dữ liệu'}</small></div>;
+      const density = control.height < 50 || control.width < 45 ? 'minimal' : control.height < 85 ? 'compact' : 'normal';
+      return <div className="simulation-lamp" data-density={density} title={title} data-state={!available ? 'unavailable' : on ? 'on' : 'off'}>
+        <div className="simulation-lamp-drawing"><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" role="img" aria-label={!available ? 'Đèn không có dữ liệu' : on ? 'Đèn bật' : 'Đèn tắt'}>
+          <circle cx="50" cy="50" r="39" fill={available ? lampColor : '#cbd5e1'} stroke="#334155" strokeWidth="3" strokeDasharray={!available || p.borderStyle === 'dashed' ? '5 3' : undefined} strokeOpacity={p.borderStyle === 'none' ? 0 : 1} style={{ filter: available && on ? 'drop-shadow(0 0 4px ' + lampColor + ')' : undefined }} />
+          {!available && <text x="50" y="50" dy=".35em" textAnchor="middle" fill="#0f172a" fontSize="32" fontWeight="800">?</text>}
+        </svg></div>
+        <strong className="simulation-lamp-label" title={text(p.label)}>{text(p.label)}</strong>
+        <small className="simulation-lamp-status">{available ? on ? 'BẬT' : 'TẮT' : 'Không có dữ liệu'}</small>
+      </div>;
     }
     case 'analog-gauge': {
       const min = number(p.min, 0, -1e15, 1e15), max = number(p.max, 100, -1e15, 1e15);

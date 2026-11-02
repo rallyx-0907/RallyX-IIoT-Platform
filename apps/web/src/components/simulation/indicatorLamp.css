@@ -1,0 +1,14 @@
+.simulation-lamp {
+  width: 100%; height: 100%; box-sizing: border-box; overflow: hidden;
+  display: grid; grid-template-rows: minmax(0, 1fr) 17px 14px;
+  gap: 2px; padding: 2px; text-align: center;
+}
+.simulation-lamp-drawing { min-width: 0; min-height: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.simulation-lamp-drawing svg { display: block; width: 100%; height: 100%; max-width: 90px; max-height: 90px; }
+.simulation-lamp-label { display: block; min-width: 0; font-size: 14px; line-height: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.simulation-lamp-status { display: block; min-width: 0; font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.simulation-lamp[data-density='compact'] { grid-template-rows: minmax(0, 1fr) 17px; }
+.simulation-lamp[data-density='compact'] .simulation-lamp-status { display: none; }
+.simulation-lamp[data-density='minimal'] { grid-template-rows: minmax(0, 1fr); gap: 0; }
+.simulation-lamp[data-density='minimal'] .simulation-lamp-label,
+.simulation-lamp[data-density='minimal'] .simulation-lamp-status { display: none; }
