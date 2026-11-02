@@ -1,0 +1,42 @@
+import type { CSSProperties } from 'react';
+import type { ControlInstance, ResolvedBinding } from '../../types/simulation';
+import { safeImageSource } from './registry';
+
+const base: CSSProperties = { width: '100%', height: '100%', boxSizing: 'border-box', overflow: 'hidden' };
+const center: CSSProperties = { ...base, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 };
+const number = (value: unknown, fallback: number, min = -1000000, max = 1000000) => typeof value === 'number' && Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+const text = (value: unknown, fallback = '') => typeof value === 'string' ? value : fallback;
+const color = (value: unknown, fallback: string) => typeof value === 'string' && /^(#[0-9a-f]{3,8}|[a-z]{1,24})$/i.test(value) ? value : fallback;
+function displayValue(resolved: ResolvedBinding | undefined, precision: unknown) {
+  if (!resolved?.available || resolved.value === undefined || typeof resolved.value === 'number' && !Number.isFinite(resolved.value)) return '—';
+  return typeof resolved.value === 'number' ? resolved.value.toFixed(number(precision, 1, 0, 6)) : typeof resolved.value === 'boolean' ? resolved.value ? 'BẬT' : 'TẮT' : resolved.value;
+}
+export function ControlRenderer({ control, resolved }: { control: ControlInstance; resolved?: ResolvedBinding }) {
+  const p = control.properties ?? {};
+  const title = resolved?.available ? resolved.quality === 'PREVIEW' ? 'Giá trị xem thử · chưa phải dữ liệu thực' : 'Dữ liệu trực tiếp' : resolved?.reason ?? 'Chưa chọn tín hiệu';
+  const available = Boolean(resolved?.available);
+  switch (control.type) {
+    case 'text': return <div style={{ ...center, alignItems: 'stretch', fontSize: number(p.fontSize, 20, 8, 200), fontWeight: ['400', '600', '700'].includes(String(p.fontWeight)) ? String(p.fontWeight) : '600', textAlign: ['left', 'center', 'right'].includes(String(p.textAlign)) ? p.textAlign as CSSProperties['textAlign'] : 'center', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{text(p.text, 'Nhãn văn bản')}</div>;
+    case 'indicator-lamp': {
+      const on = resolved?.conditionMatched === true;
+      const lampColor = color(on ? p.onColor : p.offColor, on ? '#16a34a' : '#64748b');
+      return <div style={center} title={title} data-state={!available ? 'unavailable' : on ? 'on' : 'off'}><span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'min(65%, 70px)', aspectRatio: '1', borderRadius: '50%', border: '3px ' + (['solid', 'dashed', 'none'].includes(String(p.borderStyle)) ? p.borderStyle : 'solid') + ' #334155', background: available ? lampColor : 'repeating-linear-gradient(135deg,#cbd5e1 0px,#cbd5e1 5px,#f1f5f9 5px,#f1f5f9 10px)', boxShadow: available && on ? '0 0 14px ' + lampColor : undefined, color: '#0f172a', fontSize: 25, fontWeight: 800 }}>{available ? '' : '?'}</span><strong style={{ fontSize: 14, lineHeight: 1.15, textAlign: 'center' }}>{text(p.label)}</strong><small style={{ fontSize: 11 }}>{available ? on ? 'BẬT' : 'TẮT' : 'Không có dữ liệu'}</small></div>;
+    }
+    case 'analog-gauge': {
+      const min = number(p.min, 0, -1e15, 1e15), max = number(p.max, 100, -1e15, 1e15);
+      const numeric = available && typeof resolved?.value === 'number' && Number.isFinite(resolved.value) && max > min;
+      const fraction = numeric ? Math.max(0, Math.min(1, (resolved.value as number - min) / (max - min))) : 0;
+      const angle = Math.PI * (1 - fraction);
+      const needleX = 100 + 65 * Math.cos(angle), needleY = 85 - 65 * Math.sin(angle);
+      return <div style={center} title={title}><strong style={{ fontSize: 14 }}>{text(p.label)}</strong><svg viewBox="0 0 200 110" width="100%" style={{ minHeight: 0, flex: '1 1 auto' }} role="img" aria-label={numeric ? 'Đồng hồ ' + displayValue(resolved, p.precision) : 'Đồng hồ không có dữ liệu'}><path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke="#cbd5e1" strokeWidth="12" /><path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke={numeric ? '#0d9488' : '#94a3b8'} strokeWidth="6" />{numeric && <><line x1="100" y1="85" x2={needleX} y2={needleY} stroke="#e11d48" strokeWidth="4" /><circle cx="100" cy="85" r="7" fill="#334155" /></>}<text x="17" y="105" fontSize="12" fill="#475569">{min}</text><text x="183" y="105" fontSize="12" textAnchor="end" fill="#475569">{max}</text></svg><strong style={{ fontSize: 22, lineHeight: 1 }}>{numeric ? displayValue(resolved, p.precision) : '—'} <small style={{ fontSize: 13 }}>{text(p.unit)}</small></strong>{!numeric && <small>Không có dữ liệu số</small>}</div>;
+    }
+    case 'numeric-value': return <div style={center} title={title}><span style={{ fontSize: 14 }}>{text(p.label)}</span><strong style={{ fontSize: 26, color: available ? '#0f766e' : '#64748b', overflowWrap: 'anywhere' }}>{available ? text(p.prefix) : ''}{displayValue(resolved, p.precision)}{available ? text(p.suffix) : ''} <small style={{ fontSize: 14 }}>{text(p.unit)}</small></strong>{!available && <small>Không có dữ liệu</small>}</div>;
+    case 'rectangle': return <div style={{ ...base, backgroundColor: color(p.fill, '#e2e8f0'), border: number(p.borderWidth, 1, 0, 30) + 'px solid ' + color(p.borderColor, '#64748b'), borderRadius: number(p.borderRadius, 8, 0, 200) }} />;
+    case 'line': return <svg width="100%" height="100%" viewBox={'0 0 ' + control.width + ' ' + control.height} preserveAspectRatio="none" aria-label="Đường thẳng"><line x1="0" y1={control.height / 2} x2={control.width} y2={control.height / 2} stroke={color(p.stroke, '#475569')} strokeWidth={number(p.strokeWidth, 2, 1, 30)} strokeDasharray={p.lineStyle === 'dashed' ? '10 6' : p.lineStyle === 'dotted' ? '2 5' : undefined} /></svg>;
+    case 'image': {
+      const source = safeImageSource(p.source);
+      return source ? <img draggable={false} alt="Hình ảnh sơ đồ" src={source} style={{ ...base, objectFit: ['contain', 'cover', 'fill'].includes(String(p.objectFit)) ? p.objectFit as CSSProperties['objectFit'] : 'contain', opacity: number(p.opacity, 1, 0, 1) }} /> : <div style={{ ...center, border: '1px dashed #94a3b8', color: '#64748b', fontSize: 13 }}>Chọn ảnh cục bộ<br />/assets/ hoặc /images/</div>;
+    }
+    default: return <div style={{ ...center, background: '#fef3c7', fontSize: 13 }}>Thành phần chưa được hỗ trợ</div>;
+  }
+}

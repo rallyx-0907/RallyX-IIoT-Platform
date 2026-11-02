@@ -1,0 +1,24 @@
+import type { ControlInstance, SimulationControlType } from '../../types/simulation';
+import { createControlID } from './geometry';
+
+export type PropertySchema = { key: string; label: string; type: 'text' | 'number' | 'color' | 'select'; options?: string[]; min?: number; max?: number; step?: number };
+export type ControlDefinition = { label: string; defaultSize: { width: number; height: number }; defaultProperties: Record<string, unknown>; properties: PropertySchema[]; resizable: boolean; bindable: boolean; bindingTypes: ('number' | 'boolean' | 'string')[] };
+const property = (key: string, label: string, type: PropertySchema['type'] = 'text', options?: string[]): PropertySchema => ({ key, label, type, options, ...(key === 'precision' ? { min: 0, max: 6, step: 1 } : key === 'opacity' ? { min: 0, max: 1, step: 0.1 } : key === 'fontSize' ? { min: 8, max: 200, step: 1 } : key === 'strokeWidth' ? { min: 1, max: 30, step: 1 } : key === 'borderWidth' ? { min: 0, max: 30, step: 1 } : key === 'borderRadius' ? { min: 0, max: 200, step: 1 } : {}) });
+const define = (label: string, width: number, height: number, defaultProperties: Record<string, unknown>, properties: PropertySchema[], bindingTypes: ControlDefinition['bindingTypes'] = []): ControlDefinition => ({ label, defaultSize: { width, height }, defaultProperties, properties, bindingTypes, bindable: bindingTypes.length > 0, resizable: true });
+export const CONTROL_REGISTRY: Record<SimulationControlType, ControlDefinition> = {
+  text: define('Nhãn văn bản', 180, 40, { text: 'Nhãn văn bản', fontSize: 20, fontWeight: '600', textAlign: 'center' }, [property('text', 'Nội dung'), property('fontSize', 'Cỡ chữ', 'number'), property('fontWeight', 'Độ đậm', 'select', ['400', '600', '700']), property('textAlign', 'Căn chữ', 'select', ['left', 'center', 'right'])]),
+  'indicator-lamp': define('Đèn báo trạng thái', 80, 100, { label: 'Trạng thái', onColor: '#16a34a', offColor: '#64748b', borderStyle: 'solid' }, [property('label', 'Nhãn'), property('onColor', 'Màu bật', 'color'), property('offColor', 'Màu tắt', 'color'), property('borderStyle', 'Viền', 'select', ['solid', 'dashed', 'none'])], ['number', 'boolean', 'string']),
+  'analog-gauge': define('Đồng hồ kim', 220, 170, { min: 0, max: 100, unit: '', precision: 1, label: 'Đồng hồ' }, [property('label', 'Nhãn'), property('min', 'Nhỏ nhất', 'number'), property('max', 'Lớn nhất', 'number'), property('unit', 'Đơn vị'), property('precision', 'Số lẻ', 'number')], ['number']),
+  'numeric-value': define('Giá trị tín hiệu', 180, 90, { label: 'Giá trị', unit: '', precision: 1, prefix: '', suffix: '' }, [property('label', 'Nhãn'), property('unit', 'Đơn vị'), property('precision', 'Số lẻ', 'number'), property('prefix', 'Tiền tố'), property('suffix', 'Hậu tố')], ['number', 'boolean', 'string']),
+  rectangle: define('Khung chữ nhật', 180, 110, { fill: '#e2e8f0', borderColor: '#64748b', borderWidth: 1, borderRadius: 8 }, [property('fill', 'Màu nền', 'color'), property('borderColor', 'Màu viền', 'color'), property('borderWidth', 'Độ dày viền', 'number'), property('borderRadius', 'Bo góc', 'number')]),
+  line: define('Đường thẳng', 180, 16, { stroke: '#475569', strokeWidth: 2, lineStyle: 'solid' }, [property('stroke', 'Màu nét', 'color'), property('strokeWidth', 'Độ dày', 'number'), property('lineStyle', 'Kiểu nét', 'select', ['solid', 'dashed', 'dotted'])]),
+  image: define('Hình ảnh tĩnh', 200, 140, { source: '', objectFit: 'contain', opacity: 1 }, [property('source', 'Đường dẫn ảnh cục bộ (/assets/ hoặc /images/)'), property('objectFit', 'Cách hiển thị', 'select', ['contain', 'cover', 'fill']), property('opacity', 'Độ rõ (0–1)', 'number')]),
+};
+export function createControl(type: SimulationControlType, x = 0, y = 0): ControlInstance {
+  const definition = CONTROL_REGISTRY[type];
+  return { id: createControlID(), type, x, y, ...definition.defaultSize, rotation: 0, zIndex: 0, properties: { ...definition.defaultProperties } };
+}
+export function safeImageSource(source: unknown): string | undefined {
+  if (typeof source !== 'string' || !/^\/(assets|images)\/[a-zA-Z0-9_/-]+\.(png|jpg|jpeg|webp|gif)$/.test(source)) return undefined;
+  return source;
+}
