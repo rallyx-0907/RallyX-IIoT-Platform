@@ -41,6 +41,7 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 	registerConnectivityDiagnostics(mux)
 	registerEntityPlatform(mux, registry, hub)
 	registerOnboarding(mux, registry, hub)
+	registerSimulationDashboards(mux, registry, hub)
 	databaseHealthy := func(ctx context.Context) bool { return pool.Ping(ctx) == nil }
 	health := HealthHandler(databaseHealthy, mqttHealthy)
 	root.Handle("GET /health", health)
@@ -57,7 +58,7 @@ func NewServer(pool *pgxpool.Pool, mqttHealthy func(context.Context) bool, strea
 		"connections": "SELECT c.*,EXISTS(SELECT 1 FROM connection_credentials cc WHERE cc.connection_id=c.id) AS has_credentials FROM connections c WHERE c.deleted_at IS NULL ORDER BY c.name,c.id",
 		"devices":     "SELECT id,connection_id,asset_id,area_id,template_id,template_version,name,manufacturer,model,serial_number,protocol_device_address,enabled,metadata,status,last_seen,last_successful_poll,last_error,created_at,updated_at FROM devices WHERE deleted_at IS NULL ORDER BY name,id",
 		"templates":   "SELECT * FROM device_templates WHERE deleted_at IS NULL ORDER BY name,id",
-		"tags":        "SELECT t.*,s.value,CASE WHEN upper(COALESCE(s.quality,t.quality))='UNKNOWN' THEN 'UNCERTAIN' ELSE upper(COALESCE(s.quality,t.quality)) END AS quality,s.ts,s.received_at,s.raw_value,d.name AS device_name,a.name AS asset_name FROM tags t JOIN devices d ON d.id=t.device_id JOIN assets a ON a.id=t.asset_id LEFT JOIN tag_current_state s ON s.tag_id=t.id WHERE t.deleted_at IS NULL AND d.deleted_at IS NULL ORDER BY t.name,t.id",
+		"tags":        "SELECT t.*,s.value,CASE WHEN upper(COALESCE(s.quality,t.quality))='UNKNOWN' THEN 'UNCERTAIN' ELSE upper(COALESCE(s.quality,t.quality)) END AS quality,s.ts,s.received_at,s.raw_value,d.name AS device_name,a.name AS asset_name,d.enabled AS device_enabled,a.enabled AS asset_enabled FROM tags t JOIN devices d ON d.id=t.device_id JOIN assets a ON a.id=t.asset_id LEFT JOIN tag_current_state s ON s.tag_id=t.id WHERE t.deleted_at IS NULL AND d.deleted_at IS NULL AND a.deleted_at IS NULL ORDER BY t.name,t.id",
 		"rules":       storage.RulesQuery,
 		"assets/tree": storage.TreeQuery,
 	} {
