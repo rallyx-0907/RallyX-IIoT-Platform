@@ -3,7 +3,7 @@
 Dashboard có hai cách hiển thị cùng nguồn dữ liệu RallyX:
 
 - **Phân tích:** không gian giám sát hiện có, gồm chỉ số, trạng thái, biểu đồ, cảnh báo và phân cấp nhà máy / máy / thiết bị.
-- **Sơ đồ thiết bị:** bản vẽ tự do gồm nhãn, đèn báo, đồng hồ kim, giá trị tín hiệu, khung, đường và ảnh tĩnh.
+- **Sơ đồ thiết bị:** bản vẽ tự do gồm công tắc chọn, nhãn, đèn báo, đồng hồ kim, giá trị tín hiệu, khung, đường và ảnh tĩnh.
 
 ## Tạo và sử dụng
 
@@ -20,6 +20,16 @@ Phím mũi tên dịch phần tử 1 px; Shift + mũi tên dịch theo bước l
 Dashboard phân tích hiện có vẫn ở mục **Giám sát vận hành · Phân tích**. Chọn loại Phân tích trong cửa sổ tạo sẽ mở không gian này để quản lý mẫu và phân cấp hiện có.
 
 ## Dữ liệu và quyền
+
+### Công tắc chọn 2/3 vị trí
+
+Trong Thiết kế, thêm **Công tắc chọn**, chọn số vị trí rồi nhập nhãn và giá trị cho từng vị trí. Ví dụ MAN/OFF/AUTO có thể tương ứng số 10/20/30 hoặc chuỗi MAN/OFF/AUTO. Công tắc 2 vị trí hỗ trợ cả boolean false/true. Mỗi công tắc dùng một kiểu giá trị, không được trùng giá trị giữa các vị trí; so khớp đúng kiểu và giá trị. Khi gán tín hiệu khác kiểu, kiểm tra lại các giá trị ánh xạ được chuyển đổi trong cấu hình.
+
+Chọn hướng ngang/dọc, núm xoay/tay gạt, màu hoạt động/không hoạt động, cỡ chữ và cỡ núm. Binding chỉ nhận giá trị trực tiếp; tín hiệu boolean chỉ dùng cho hai vị trí. Label, ánh xạ, binding và hình học được lưu cùng dashboard, không cần migration mới.
+
+Đây là phần tử **hiển thị**, bấm vào núm trong Trực tiếp không phát lệnh. Xem thử dùng giá trị tạm của trình duyệt. BAD, STALE, mất realtime, thiếu tín hiệu hoặc giá trị không khớp (ví dụ 99) hiện **? / Không xác định**, không tự coi là OFF.
+
+Ảnh Design/Live và kiểm chứng: [Selector Switch](review-assets/selector-switch/README.md).
 
 Chỉ quản trị viên được thiết kế, xem thử, lưu, đổi tên và xóa. Người vận hành và người xem mở dashboard ở chế độ trực tiếp. Dashboard được chia sẻ trong cài đặt RallyX hiện tại; đây không phải ranh giới tenant SaaS.
 

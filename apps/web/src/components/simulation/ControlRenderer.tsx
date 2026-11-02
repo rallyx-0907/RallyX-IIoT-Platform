@@ -1,3 +1,4 @@
+import { SelectorSwitch } from './SelectorSwitch';
 import type { CSSProperties } from 'react';
 import type { ControlInstance, ResolvedBinding } from '../../types/simulation';
 import { safeImageSource } from './registry';
@@ -17,6 +18,7 @@ export function ControlRenderer({ control, resolved }: { control: ControlInstanc
   const title = resolved?.available ? resolved.quality === 'PREVIEW' ? 'Giá trị xem thử · chưa phải dữ liệu thực' : 'Dữ liệu trực tiếp' : resolved?.reason ?? 'Chưa chọn tín hiệu';
   const available = Boolean(resolved?.available);
   switch (control.type) {
+    case 'selector-switch': return <SelectorSwitch control={control} resolved={resolved} />;
     case 'text': return <div style={{ ...center, alignItems: 'stretch', fontSize: number(p.fontSize, 20, 8, 200), fontWeight: ['400', '600', '700'].includes(String(p.fontWeight)) ? String(p.fontWeight) : '600', textAlign: ['left', 'center', 'right'].includes(String(p.textAlign)) ? p.textAlign as CSSProperties['textAlign'] : 'center', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{text(p.text, 'Nhãn văn bản')}</div>;
     case 'indicator-lamp': {
       const on = resolved?.conditionMatched === true;

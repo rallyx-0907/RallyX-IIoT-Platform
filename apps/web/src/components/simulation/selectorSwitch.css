@@ -1,0 +1,14 @@
+.simulation-selector { width:100%; height:100%; box-sizing:border-box; overflow:hidden; display:grid; grid-template-rows:minmax(0,1.4em) minmax(0,1.6em) minmax(0,1fr) minmax(0,1.5em); gap:4px; padding:6px; font-size:var(--selector-text-size); text-align:center; }
+.simulation-selector-label,.simulation-selector-status,.simulation-selector-positions span { min-width:0; min-height:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.simulation-selector-positions { display:flex; align-items:center; justify-content:space-around; gap:4px; min-height:0; overflow:hidden; }
+.simulation-selector-positions span { flex:1; color:var(--selector-inactive); }
+.simulation-selector-positions [data-selected="true"] { color:var(--selector-active); font-weight:700; }
+.simulation-selector-drawing { min-height:0; min-width:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.simulation-selector-drawing svg { display:block; width:var(--selector-knob-size); max-width:100%; height:100%; max-height:var(--selector-knob-size); }
+.simulation-selector[data-orientation="vertical"] { grid-template-columns:minmax(0,1fr) minmax(0,2fr); grid-template-rows:minmax(0,1.4em) minmax(0,1fr) minmax(0,1.5em); }
+.simulation-selector[data-orientation="vertical"] .simulation-selector-label,.simulation-selector[data-orientation="vertical"] .simulation-selector-status { grid-column:1/-1; }
+.simulation-selector[data-orientation="vertical"] .simulation-selector-positions { flex-direction:column; }
+.simulation-selector[data-density="compact"] { gap:2px; padding:3px; font-size:min(var(--selector-text-size),11px); }
+.simulation-selector[data-density="minimal"] { display:block; padding:1px; }
+.simulation-selector[data-density="minimal"] .simulation-selector-label,.simulation-selector[data-density="minimal"] .simulation-selector-positions,.simulation-selector[data-density="minimal"] .simulation-selector-status { display:none; }
+.simulation-selector[data-density="minimal"] .simulation-selector-drawing { height:100%; }

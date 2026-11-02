@@ -4,7 +4,7 @@ import { ControlRenderer } from './ControlRenderer';
 import { CONTROL_REGISTRY, createControl, safeImageSource } from './registry';
 afterEach(cleanup);
 describe('simulation controls', () => {
-  it('has all seven generic controls', () => expect(Object.keys(CONTROL_REGISTRY)).toHaveLength(7));
+  it('has all eight generic controls', () => expect(Object.keys(CONTROL_REGISTRY)).toHaveLength(8));
   it('separates gauge label, bounded drawing and value into three regions at every size', () => {
     const control = createControl('analog-gauge');
     control.properties.label = 'Voltage';

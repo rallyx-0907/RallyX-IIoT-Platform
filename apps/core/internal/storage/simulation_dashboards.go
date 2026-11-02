@@ -78,17 +78,28 @@ var simulationImage = regexp.MustCompile(`^/(assets|images)/[a-zA-Z0-9_/-]+\.(pn
 func safeSimulationImage(s string) bool { return s == "" || simulationImage.MatchString(s) }
 
 var simulationProperties = map[string]map[string]string{
-	"text":           {"text": "string", "fontSize": "fontSize", "fontWeight": "weight", "textAlign": "align"},
-	"indicator-lamp": {"label": "string", "onColor": "color", "offColor": "color", "borderStyle": "border"},
-	"analog-gauge":   {"min": "number", "max": "number", "unit": "string", "precision": "precision", "label": "string"},
-	"numeric-value":  {"label": "string", "unit": "string", "precision": "precision", "prefix": "string", "suffix": "string"},
-	"rectangle":      {"fill": "color", "borderColor": "color", "borderWidth": "borderWidth", "borderRadius": "radius"},
-	"line":           {"stroke": "color", "strokeWidth": "borderWidth", "lineStyle": "lineStyle"},
-	"image":          {"source": "image", "objectFit": "fit", "opacity": "opacity"},
+	"selector-switch": {"label": "selectorLabel", "positions": "positions", "orientation": "orientation", "knobStyle": "knobStyle", "activeColor": "color", "inactiveColor": "color", "textSize": "textSize", "knobSize": "knobSize"},
+	"text":            {"text": "string", "fontSize": "fontSize", "fontWeight": "weight", "textAlign": "align"},
+	"indicator-lamp":  {"label": "string", "onColor": "color", "offColor": "color", "borderStyle": "border"},
+	"analog-gauge":    {"min": "number", "max": "number", "unit": "string", "precision": "precision", "label": "string"},
+	"numeric-value":   {"label": "string", "unit": "string", "precision": "precision", "prefix": "string", "suffix": "string"},
+	"rectangle":       {"fill": "color", "borderColor": "color", "borderWidth": "borderWidth", "borderRadius": "radius"},
+	"line":            {"stroke": "color", "strokeWidth": "borderWidth", "lineStyle": "lineStyle"},
+	"image":           {"source": "image", "objectFit": "fit", "opacity": "opacity"},
 }
 
 func validateSimulationProperty(kind string, v any) bool {
 	switch kind {
+	case "positions":
+		_, ok := selectorPositionType(v)
+		return ok
+	case "selectorLabel":
+		s, ok := v.(string)
+		return ok && utf8.RuneCountInString(s) <= 80
+	case "orientation":
+		return v == "horizontal" || v == "vertical"
+	case "knobStyle":
+		return v == "rotary" || v == "lever"
 	case "string":
 		s, ok := v.(string)
 		return ok && utf8.RuneCountInString(s) <= 2000
@@ -127,6 +138,10 @@ func validateSimulationProperty(kind string, v any) bool {
 		switch kind {
 		case "number":
 			return bounded(n, -1e15, 1e15)
+		case "textSize":
+			return bounded(n, 8, 32)
+		case "knobSize":
+			return bounded(n, 24, 120)
 		case "fontSize":
 			return bounded(n, 8, 200)
 		case "precision":
@@ -141,6 +156,54 @@ func validateSimulationProperty(kind string, v any) bool {
 	}
 	return false
 }
+
+// selectorPositionType validates strict, homogeneous scalar mappings without coercion.
+func selectorPositionType(value any) (string, bool) {
+	positions, ok := value.([]any)
+	if !ok || len(positions) < 2 || len(positions) > 3 {
+		return "", false
+	}
+	datatype := ""
+	seen := map[any]bool{}
+	for _, raw := range positions {
+		position, ok := raw.(map[string]any)
+		if !ok || len(position) != 2 {
+			return "", false
+		}
+		label, ok := position["label"].(string)
+		if !ok || utf8.RuneCountInString(label) > 80 {
+			return "", false
+		}
+		kind := ""
+		value := position["value"]
+		switch v := value.(type) {
+		case float64:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return "", false
+			}
+			kind = "number"
+		case bool:
+			if len(positions) != 2 {
+				return "", false
+			}
+			kind = "boolean"
+		case string:
+			if utf8.RuneCountInString(v) > 2000 {
+				return "", false
+			}
+			kind = "string"
+		default:
+			return "", false
+		}
+		if datatype != "" && datatype != kind || seen[value] {
+			return "", false
+		}
+		datatype = kind
+		seen[value] = true
+	}
+	return datatype, true
+}
+
 func ValidateSimulationDashboard(d SimulationDashboard) error {
 	if strings.TrimSpace(d.Name) == "" || utf8.RuneCountInString(d.Name) > 200 {
 		return simulationInvalid("dashboard name")
@@ -180,6 +243,11 @@ func ValidateSimulationDashboard(d SimulationDashboard) error {
 				return simulationInvalid("control property " + key)
 			}
 		}
+		if v.Type == "selector-switch" {
+			if _, ok := selectorPositionType(v.Properties["positions"]); !ok {
+				return simulationInvalid("selector positions")
+			}
+		}
 		if v.Type == "analog-gauge" {
 			min, max := 0.0, 100.0
 			if n, ok := v.Properties["min"].(float64); ok {
@@ -208,7 +276,7 @@ func ValidateSimulationDashboard(d SimulationDashboard) error {
 					return simulationInvalid("comparison value")
 				}
 			}
-			if v.Type != "indicator-lamp" && v.Type != "analog-gauge" && v.Type != "numeric-value" {
+			if v.Type != "indicator-lamp" && v.Type != "analog-gauge" && v.Type != "numeric-value" && v.Type != "selector-switch" {
 				return simulationInvalid("control binding")
 			}
 			if strings.TrimSpace(b.TagID) == "" || len(b.TagID) > 200 {
@@ -231,6 +299,9 @@ func ValidateSimulationDashboard(d SimulationDashboard) error {
 				}
 			default:
 				return simulationInvalid("binding operator")
+			}
+			if v.Type == "selector-switch" && (b.Operator != "direct" || b.CompareValue != nil) {
+				return simulationInvalid("selector requires direct binding")
 			}
 			if v.Type == "analog-gauge" && b.Operator != "direct" {
 				return simulationInvalid("gauge requires numeric direct binding")
@@ -286,6 +357,12 @@ func validateDashboardTags(ctx context.Context, tx pgx.Tx, d SimulationDashboard
 		}
 		if err != nil {
 			return err
+		}
+		if c.Type == "selector-switch" {
+			kind, ok := selectorPositionType(c.Properties["positions"])
+			if !ok || kind != datatype {
+				return simulationInvalid("selector position datatype")
+			}
 		}
 		if c.Type == "analog-gauge" && datatype != "number" {
 			return simulationInvalid("gauge tag must be numeric")
