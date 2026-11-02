@@ -12,6 +12,8 @@ The mandatory [local device extensibility spec](RallyX_IIoT_Platform_AGENT_CHANG
 
 Native entity dashboards use shared profiles and templates; see [the configuration guide](docs/native-entity-dashboards.md). Grafana and previously saved boards remain optional legacy views. The broader [target scope and remaining work](docs/specifications/iiot-target-gap-map.md) are tracked separately from the read-only V1 release gates.
 
+Dashboards also support a native freeform equipment mimic with lamps, gauges and Tag bindings. See [Simulation Dashboard design, preview and live operation](docs/simulation-dashboards.md).
+
 ## Quick start
 
 Requires Docker Engine + Compose v2 on Linux. Build-time dependency downloads require Internet; offline packages are a later release deliverable.
