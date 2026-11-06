@@ -1,0 +1,780 @@
+﻿{
+    "layout":  [
+                   {
+                       "id":  "slave-panel-1",
+                       "type":  "text",
+                       "x":  30,
+                       "y":  15,
+                       "width":  1200,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "TỦ ĐIỆN DEMO · NHÀ MÁY",
+                                          "fontSize":  28,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-2",
+                       "type":  "text",
+                       "x":  30,
+                       "y":  52,
+                       "width":  1200,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "MQTT / Modbus TCP · dữ liệu mô phỏng",
+                                          "fontSize":  15,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-3",
+                       "type":  "rectangle",
+                       "x":  30,
+                       "y":  105,
+                       "width":  770,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-4",
+                       "type":  "text",
+                       "x":  45,
+                       "y":  115,
+                       "width":  740,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "NGUỒN 3 PHA \u0026 CẢNH BÁO",
+                                          "fontSize":  20,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-5",
+                       "type":  "indicator-lamp",
+                       "x":  90,
+                       "y":  158,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Pha R",
+                                          "onColor":  "#ef4444",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  0
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-6",
+                       "type":  "indicator-lamp",
+                       "x":  250,
+                       "y":  158,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Pha S",
+                                          "onColor":  "#eab308",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  1
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-7",
+                       "type":  "indicator-lamp",
+                       "x":  410,
+                       "y":  158,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Pha T",
+                                          "onColor":  "#2563eb",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  2
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-8",
+                       "type":  "indicator-lamp",
+                       "x":  600,
+                       "y":  158,
+                       "width":  150,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Alarm Bell",
+                                          "onColor":  "#ef4444",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  3
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-9",
+                       "type":  "rectangle",
+                       "x":  820,
+                       "y":  105,
+                       "width":  410,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-10",
+                       "type":  "selector-switch",
+                       "x":  915,
+                       "y":  110,
+                       "width":  215,
+                       "height":  155,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Chế độ vận hành",
+                                          "positions":  [
+                                                            {
+                                                                "value":  0,
+                                                                "label":  "MAN"
+                                                            },
+                                                            {
+                                                                "value":  1,
+                                                                "label":  "OFF"
+                                                            },
+                                                            {
+                                                                "value":  2,
+                                                                "label":  "AUTO"
+                                                            }
+                                                        ],
+                                          "orientation":  "horizontal",
+                                          "knobStyle":  "rotary",
+                                          "activeColor":  "#0d9488",
+                                          "inactiveColor":  "#64748b",
+                                          "textSize":  16,
+                                          "knobSize":  86
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  4
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-11",
+                       "type":  "rectangle",
+                       "x":  30,
+                       "y":  300,
+                       "width":  390,
+                       "height":  330,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-12",
+                       "type":  "text",
+                       "x":  50,
+                       "y":  310,
+                       "width":  350,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "MOTOR 1",
+                                          "fontSize":  23,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-13",
+                       "type":  "selector-switch",
+                       "x":  45,
+                       "y":  365,
+                       "width":  215,
+                       "height":  200,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Công tắc M1",
+                                          "positions":  [
+                                                            {
+                                                                "value":  0,
+                                                                "label":  "OFF"
+                                                            },
+                                                            {
+                                                                "value":  1,
+                                                                "label":  "ON"
+                                                            }
+                                                        ],
+                                          "orientation":  "horizontal",
+                                          "knobStyle":  "rotary",
+                                          "activeColor":  "#0d9488",
+                                          "inactiveColor":  "#64748b",
+                                          "textSize":  16,
+                                          "knobSize":  86
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  5
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-14",
+                       "type":  "indicator-lamp",
+                       "x":  290,
+                       "y":  365,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "RUN",
+                                          "onColor":  "#16a34a",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  8
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-15",
+                       "type":  "indicator-lamp",
+                       "x":  290,
+                       "y":  490,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "FAULT",
+                                          "onColor":  "#ef4444",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  9
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-16",
+                       "type":  "rectangle",
+                       "x":  440,
+                       "y":  300,
+                       "width":  390,
+                       "height":  330,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-17",
+                       "type":  "text",
+                       "x":  460,
+                       "y":  310,
+                       "width":  350,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "MOTOR 2",
+                                          "fontSize":  23,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-18",
+                       "type":  "selector-switch",
+                       "x":  455,
+                       "y":  365,
+                       "width":  215,
+                       "height":  200,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Công tắc M2",
+                                          "positions":  [
+                                                            {
+                                                                "value":  0,
+                                                                "label":  "OFF"
+                                                            },
+                                                            {
+                                                                "value":  1,
+                                                                "label":  "ON"
+                                                            }
+                                                        ],
+                                          "orientation":  "horizontal",
+                                          "knobStyle":  "rotary",
+                                          "activeColor":  "#0d9488",
+                                          "inactiveColor":  "#64748b",
+                                          "textSize":  16,
+                                          "knobSize":  86
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  6
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-19",
+                       "type":  "indicator-lamp",
+                       "x":  700,
+                       "y":  365,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "RUN",
+                                          "onColor":  "#16a34a",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  10
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-20",
+                       "type":  "indicator-lamp",
+                       "x":  700,
+                       "y":  490,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "FAULT",
+                                          "onColor":  "#ef4444",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  11
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-21",
+                       "type":  "rectangle",
+                       "x":  850,
+                       "y":  300,
+                       "width":  390,
+                       "height":  330,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-22",
+                       "type":  "text",
+                       "x":  870,
+                       "y":  310,
+                       "width":  350,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "MOTOR 3",
+                                          "fontSize":  23,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-23",
+                       "type":  "selector-switch",
+                       "x":  865,
+                       "y":  365,
+                       "width":  215,
+                       "height":  200,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "Công tắc M3",
+                                          "positions":  [
+                                                            {
+                                                                "value":  0,
+                                                                "label":  "OFF"
+                                                            },
+                                                            {
+                                                                "value":  1,
+                                                                "label":  "ON"
+                                                            }
+                                                        ],
+                                          "orientation":  "horizontal",
+                                          "knobStyle":  "rotary",
+                                          "activeColor":  "#0d9488",
+                                          "inactiveColor":  "#64748b",
+                                          "textSize":  16,
+                                          "knobSize":  86
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  7
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-24",
+                       "type":  "indicator-lamp",
+                       "x":  1110,
+                       "y":  365,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "RUN",
+                                          "onColor":  "#16a34a",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  12
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-25",
+                       "type":  "indicator-lamp",
+                       "x":  1110,
+                       "y":  490,
+                       "width":  105,
+                       "height":  105,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "FAULT",
+                                          "onColor":  "#ef4444",
+                                          "offColor":  "#64748b",
+                                          "borderStyle":  "solid"
+                                      },
+                       "binding":  {
+                                       "operator":  "==",
+                                       "compareValue":  1,
+                                       "tagIndex":  13
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-26",
+                       "type":  "text",
+                       "x":  30,
+                       "y":  650,
+                       "width":  1200,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "ĐIỆN ÁP \u0026 DÒNG ĐIỆN",
+                                          "fontSize":  23,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-27",
+                       "type":  "rectangle",
+                       "x":  30,
+                       "y":  710,
+                       "width":  390,
+                       "height":  190,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-28",
+                       "type":  "analog-gauge",
+                       "x":  50,
+                       "y":  720,
+                       "width":  350,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "V1",
+                                          "min":  0,
+                                          "max":  500,
+                                          "unit":  "V",
+                                          "precision":  1
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  14
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-29",
+                       "type":  "rectangle",
+                       "x":  440,
+                       "y":  710,
+                       "width":  390,
+                       "height":  190,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-30",
+                       "type":  "analog-gauge",
+                       "x":  460,
+                       "y":  720,
+                       "width":  350,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "V2",
+                                          "min":  0,
+                                          "max":  500,
+                                          "unit":  "V",
+                                          "precision":  1
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  15
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-31",
+                       "type":  "rectangle",
+                       "x":  850,
+                       "y":  710,
+                       "width":  390,
+                       "height":  190,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-32",
+                       "type":  "analog-gauge",
+                       "x":  870,
+                       "y":  720,
+                       "width":  350,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "V3",
+                                          "min":  0,
+                                          "max":  500,
+                                          "unit":  "V",
+                                          "precision":  1
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  16
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-33",
+                       "type":  "rectangle",
+                       "x":  30,
+                       "y":  915,
+                       "width":  390,
+                       "height":  190,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-34",
+                       "type":  "analog-gauge",
+                       "x":  50,
+                       "y":  925,
+                       "width":  350,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "I1",
+                                          "min":  0,
+                                          "max":  200,
+                                          "unit":  "A",
+                                          "precision":  1
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  17
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-35",
+                       "type":  "rectangle",
+                       "x":  440,
+                       "y":  915,
+                       "width":  390,
+                       "height":  190,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-36",
+                       "type":  "analog-gauge",
+                       "x":  460,
+                       "y":  925,
+                       "width":  350,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "I2",
+                                          "min":  0,
+                                          "max":  200,
+                                          "unit":  "A",
+                                          "precision":  1
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  18
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-37",
+                       "type":  "rectangle",
+                       "x":  850,
+                       "y":  915,
+                       "width":  390,
+                       "height":  190,
+                       "rotation":  0,
+                       "zIndex":  0,
+                       "properties":  {
+                                          "fill":  "#ffffff",
+                                          "borderColor":  "#cbd5e1",
+                                          "borderWidth":  1,
+                                          "borderRadius":  14
+                                      }
+                   },
+                   {
+                       "id":  "slave-panel-38",
+                       "type":  "analog-gauge",
+                       "x":  870,
+                       "y":  925,
+                       "width":  350,
+                       "height":  170,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "label":  "I3",
+                                          "min":  0,
+                                          "max":  200,
+                                          "unit":  "A",
+                                          "precision":  1
+                                      },
+                       "binding":  {
+                                       "operator":  "direct",
+                                       "tagIndex":  19
+                                   }
+                   },
+                   {
+                       "id":  "slave-panel-39",
+                       "type":  "text",
+                       "x":  30,
+                       "y":  1125,
+                       "width":  1200,
+                       "height":  38,
+                       "rotation":  0,
+                       "zIndex":  1,
+                       "properties":  {
+                                          "text":  "Đèn: 0=Tắt, 1=Bật · Chế độ: 0=MAN, 1=OFF, 2=AUTO · Thang demo: 500 V / 200 A",
+                                          "fontSize":  14,
+                                          "fontWeight":  "700",
+                                          "textAlign":  "center"
+                                      }
+                   }
+               ]
+}
