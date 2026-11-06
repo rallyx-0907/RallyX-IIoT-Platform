@@ -36,3 +36,15 @@ There is no Git history establishing commit conventions. Use concise imperative 
 ## Architecture & Configuration Rules
 
 Keep business logic in Core and Node-RED limited to connectivity and mapping. Field integration is read-only in V1.0. Preserve offline operation; never commit secrets or hard-code demo assets. Mark implementation-plan tasks complete only after verification and add a Progress Log note.
+
+## Mandatory UI Verification Rules
+
+Read and follow [UI quality gates](docs/ui-quality-gates.md) for every UI/layout change and screenshot/slide export.
+
+- Reserve independent layout regions for titles, drawings, values, legends and status/footer text. SVG, canvas and charts must fit the remaining space; preserve aspect ratio and border/stroke padding.
+- Test resized controls and the actual saved layout, not only the default size. Do not solve overlap solely by increasing default height, reducing text to an unreadable size, hiding overflow or editing screenshots.
+- Define a deliberate small-size fallback: remove secondary decoration, provide an accessible full title when truncating, and use bounded internal scrolling for long legends/tables. Essential values, alarm/quality states and counts must remain accessible.
+- Check Vietnamese long labels, multiple states/series, large values, GOOD/OFF/FAULT/unavailable and empty data. Check runtime, Design and Preview wherever the renderer is shared.
+- Before completion, run appropriate unit/build checks AND browser geometry checks for affected regions at desktop, 1024px, 720px and 390px, plus browser zoom/large-text coverage. A passing DOM/structure test alone is insufficient for clipping or overlap bugs.
+- Capture and visually inspect the affected screen after the fix. For presentations, recapture the app, regenerate all affected exports and inspect their final rendered pages; do not conceal an application defect by cropping or painting over it.
+- Add a regression that fails on the previous layout for every confirmed clipping/overlap bug. Record tested modes/sizes, evidence and any remaining limitation in the change summary.
