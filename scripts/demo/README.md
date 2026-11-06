@@ -1,5 +1,13 @@
 # Full RallyX showcase
 
+## Current local installation — 2026-11-06
+
+At the user's request, the same demo fixtures have now been added through application APIs to the original `rallyx` installation on port 8080. Use the original account and select **Nhà máy Bình Minh · DEMO** in the dashboard location picker, or open **DEMO · Tủ điện nhà máy Bình Minh**. The previous separate port-8088 stack and its publisher are stopped and their automatic restart disabled; their database volumes are retained.
+
+The original installation now has 92 GOOD points (24 original + 68 demo), seven devices, four connections, eight rules, populated synthetic history and all eight factory widgets GOOD. Original tag/device/template/legacy dashboard records were compared with the pre-import snapshot and retained. A browser check passed for Runtime and template Design/Preview on the original login. The internal `rallyx-demo-stream` container supplies only DEMO MQTT/Modbus data on the original Docker network, with automatic restart and no published field ports. It is a data-source process, not a second application installation. Existing account credentials were not changed.
+
+Machine-local import state, publisher scripts, verification logs and a pre-import database dump are under ignored `.tools/`. The sections below describe how the original isolated showcase was produced; do not rerun its isolated seed against an operating installation without explicit authorization and a configuration/ID check.
+
 This dataset is confined to the `rallyx-showcase` Docker project. It does not alter the operating `rallyx` database, connections, Slave ID 1 bindings or saved dashboards. Its Web port is bound to localhost:8088. MQTT and Modbus simulator ports remain private to the Docker network.
 
 The configured scenario has one factory, two areas, three machines and one power meter; 68 datapoints; three device templates; four rules; shared analytical dashboards; and a cabinet drawing. Every entity, tag, binding, template and rule uses the normal Core APIs. Two hours of synthetic history are replayed through normal MQTT ingestion, which creates events and runtime sessions. Live MQTT payloads go through the connectivity adapter, and the meter answers read-only Modbus FC03 requests.
